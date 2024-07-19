@@ -1,10 +1,9 @@
-import { Button, Form, FormProps, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import FormItem from "antd/es/form/FormItem";
 import InputPassword from "antd/es/input/Password";
-import { useState } from "react";
 import { TUserJira } from "@nqhd3v/crazy/types/jira";
-import { $client } from "@/utils/request";
 import { useJira } from "./context";
+import { useJiraStore } from "@/stores/jira";
 
 interface IJiraAuth {
   loading?: boolean;
@@ -13,36 +12,22 @@ interface IJiraAuth {
   onLoading?: (isLoading: boolean) => void;
 }
 const JiraAuth: React.FC<IJiraAuth> = ({ onNext }) => {
+  const user = useJiraStore.useUser();
   const {
-    initializing,
-    user,
-    loadingStep,
-    setLoadingStep,
-    setCurrentStep,
-    setUser,
+    states: { initializing, loadingUser },
+    setStates,
+    getUser,
   } = useJira();
-  const getUser: FormProps["onFinish"] = async ({ email, pat }) => {
-    setLoadingStep(true);
-    const res = await $client.post("jira/auth", {
-      email,
-      pat,
-    });
 
-    if (res.data.user) {
-      setUser(res.data.user);
-      setCurrentStep(1);
-    }
-
-    setLoadingStep(false);
-  };
-
-  if (initializing) {
-    return <div className="text-gray-400">Authenticating user info...</div>;
+  if (initializing || loadingUser) {
+    return (
+      <div className="text-gray-400 text-xs">Authenticating user info...</div>
+    );
   }
 
   if (user) {
     return (
-      <div className="text-gray-400">
+      <div className="text-gray-400 text-xs">
         Authenticated with{" "}
         <span className="text-gray-500 font-bold">
           &quot;{user.displayName}&quot;
@@ -52,14 +37,20 @@ const JiraAuth: React.FC<IJiraAuth> = ({ onNext }) => {
   }
   return (
     <div>
-      <Form layout="vertical" onFinish={getUser}>
+      <Form
+        layout="vertical"
+        onFinish={async ({ email, pat }) => {
+          await getUser(email, pat);
+          setStates({ currentStep: 1 });
+        }}
+      >
         <div className="grid grid-cols-2 gap-6">
           <FormItem
             name="email"
             label="Email"
             rules={[{ required: true, message: "Enter your email" }]}
           >
-            <Input placeholder="example@gmail.com" disabled={loadingStep} />
+            <Input placeholder="example@gmail.com" disabled={loadingUser} />
           </FormItem>
           <FormItem
             name="pat"
@@ -68,14 +59,14 @@ const JiraAuth: React.FC<IJiraAuth> = ({ onNext }) => {
           >
             <InputPassword
               placeholder="personal access token"
-              disabled={loadingStep}
+              disabled={loadingUser}
             />
           </FormItem>
         </div>
         <div className="flex items-center justify-between">
           <Button
-            disabled={loadingStep}
-            loading={loadingStep}
+            disabled={loadingUser}
+            loading={loadingUser}
             type="primary"
             htmlType="submit"
           >

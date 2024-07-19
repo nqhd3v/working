@@ -14,7 +14,7 @@ export const checkCookieJira = async ({
 > => {
   const cookie = cookies();
   const jiraToken = cookie.get(JIRA_TOKEN_KEY);
-  if (!jiraToken) return undefined;
+  if (!jiraToken || !jiraToken.value) return undefined;
 
   const decryptedData = decrypt(jiraToken.value);
   if (!decryptedData) return null;
@@ -46,7 +46,7 @@ export const checkCookieBlp = async ({
 > => {
   const cookie = cookies();
   const blpToken = cookie.get(BLP_TOKEN_KEY);
-  if (!blpToken) return undefined;
+  if (!blpToken || !blpToken.value) return undefined;
 
   const decryptedData = decrypt(blpToken.value);
   if (!decryptedData) return null;

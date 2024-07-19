@@ -11,30 +11,7 @@ import BlpDefaultData from "./default-info";
 const InternalBlpSetupCard = () => {
   const {
     states: { currentStep, initializing },
-    setStates,
   } = useBlueprint();
-
-  const handleCheck = async () => {
-    setStates({ initializing: true });
-    try {
-      const res = await $client("blp/auth");
-      if (res.data.user) {
-        setStates((prev) => ({
-          ...prev,
-          user: res.data.user,
-          currentStep: prev.currentStep + 1,
-        }));
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setStates({ initializing: false });
-    }
-  };
-
-  useEffect(() => {
-    handleCheck();
-  }, []);
 
   return (
     <Card title="Blueprint Setup">

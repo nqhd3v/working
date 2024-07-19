@@ -1,14 +1,16 @@
 import BlpSetupCard from "@/components/blp";
 import JiraSetupCard from "@/components/jira";
+import JiraToBlp from "@/components/jira-blp";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="p-5 bg-gray-200 w-full min-h-screen">
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 gap-5 mb-5">
         <JiraSetupCard />
         <BlpSetupCard />
       </div>
+      <JiraToBlp />
       <div className="p-5 text-center text-gray-400 text-xs">
         <div>
           Developed by{" "}

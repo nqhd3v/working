@@ -7,29 +7,30 @@ import { useEffect } from "react";
 import JiraAuth from "./auth";
 import { JiraProvider, useJira } from "./context";
 import JiraDefaultInfo from "./default-info";
+import { useJiraStore } from "@/stores/jira";
 
 const InternalJiraSetupCard = () => {
+  const setUser = useJiraStore.useUpdateUser();
   const {
-    currentStep,
-    loadingStep,
-    initializing,
-    setInitializing,
-    setUser,
-    setCurrentStep,
+    states: { currentStep, initializing, loadingBoard, loadingIssueType },
+    setStates,
   } = useJira();
 
   const handleCheck = async () => {
-    setInitializing(true);
+    setStates({ initializing: true });
     try {
       const res = await $client("jira/auth");
       if (res.data.user) {
         setUser(res.data.user);
-        setCurrentStep((s) => (s += 1));
+        setStates((p) => ({
+          ...p,
+          currentStep: p.currentStep + 1,
+        }));
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setInitializing(false);
+      setStates({ initializing: false });
     }
   };
 
@@ -49,7 +50,7 @@ const InternalJiraSetupCard = () => {
             icon: (
               <ProgressIcon
                 icon={<UserOutlined />}
-                loading={loadingStep || initializing}
+                loading={initializing}
                 index={0}
                 current={currentStep}
               />
@@ -61,7 +62,7 @@ const InternalJiraSetupCard = () => {
             icon: (
               <ProgressIcon
                 icon={<SettingOutlined />}
-                loading={loadingStep}
+                loading={initializing || loadingBoard || loadingIssueType}
                 index={1}
                 current={currentStep}
               />

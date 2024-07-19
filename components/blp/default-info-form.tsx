@@ -7,20 +7,23 @@ import {
 import TestDataModal from "./test-data.modal";
 import { useState } from "react";
 import { BLP_CONF_PRJ_ID, BLP_CONF_ROOT_PRJ_ID } from "@/utils/constant";
+import { useBlpStore } from "@/stores/blueprint";
+import { find, flatMap } from "lodash";
+import {
+  TProjectTransformed,
+  TRequirementCategory,
+} from "@nqhd3v/crazy/types/blueprint";
 
 const BlpDefaultForm = () => {
   const [openTestModal, setOpenTestModal] = useState(false);
+  const selectedProject = useBlpStore.useSelectedProject();
+  const selectedCategory = useBlpStore.useSelectedCategory();
+  const setProject = useBlpStore.useUpdateSelectedProject();
+  const setCategory = useBlpStore.useUpdateSelectedCategory();
 
   const [form] = Form.useForm();
   const {
-    states: {
-      loadingProject,
-      loadingCategory,
-      selectedProject,
-      selectedCategory,
-      projects,
-      categories,
-    },
+    states: { loadingProject, loadingCategory, projects, categories },
     getTasks,
     getCategories,
     setStates,
@@ -39,12 +42,14 @@ const BlpDefaultForm = () => {
   };
 
   const handleSave: FormProps["onFinish"] = ({ project, category }) => {
-    localStorage.setItem(BLP_CONF_ROOT_PRJ_ID, project);
-    localStorage.setItem(BLP_CONF_PRJ_ID, category);
-    setStates({
-      selectedProject: project,
-      selectedCategory: category,
-    });
+    setProject(
+      find(projects, ({ id }) => id === project) as TProjectTransformed
+    );
+    setCategory(
+      flatMap(categories, (c) => c.subItems).find(
+        (p) => p.pjtId === category
+      ) as TRequirementCategory
+    );
   };
 
   return (

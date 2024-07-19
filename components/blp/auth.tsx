@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TUserJira } from "@nqhd3v/crazy/types/jira";
 import { $client } from "@/utils/request";
 import { useBlueprint } from "./context";
+import { useBlpStore } from "@/stores/blueprint";
 
 interface IBlpAuth {
   loading?: boolean;
@@ -14,9 +15,12 @@ interface IBlpAuth {
 }
 const BlpAuth: React.FC<IBlpAuth> = () => {
   const {
-    states: { initializing, user, loadingStep },
+    states: { initializing, loadingStep },
     setStates,
   } = useBlueprint();
+  const user = useBlpStore.useUser();
+  const setUser = useBlpStore.useUpdateUser();
+
   const getUser: FormProps["onFinish"] = async ({ username, password }) => {
     setStates({ loadingStep: true });
     const res = await $client.post("blp/auth", {
@@ -25,8 +29,8 @@ const BlpAuth: React.FC<IBlpAuth> = () => {
     });
 
     if (res.data.user) {
+      setUser(res.data.user);
       setStates({
-        user: res.data.user,
         currentStep: 1,
       });
     }

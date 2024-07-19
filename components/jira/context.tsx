@@ -1,83 +1,178 @@
+import { useJiraStore } from "@/stores/jira";
 import { JIRA_CONF_BOARD_ID, JIRA_CONF_ISSUE_TYPE_IDS } from "@/utils/constant";
+import {
+  getJiraBoards,
+  getJiraIssues,
+  getJiraIssueTypeByBoard,
+  getJiraSprints,
+  getJiraUser,
+} from "@/utils/jira.request";
 import { $client } from "@/utils/request";
 import {
   TBoardJira,
+  TJiraIssue,
   TJiraIssueType,
-  TUserJira,
+  TSprintJira,
 } from "@nqhd3v/crazy/types/jira";
-import React, {
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useSetState } from "ahooks";
+import { SetState } from "ahooks/lib/useSetState";
+import React, { useContext, useEffect, useState } from "react";
+
+export type TJiraStates = {
+  // data
+  boards: TBoardJira[];
+  issues: TJiraIssue[];
+  issueTypes: TJiraIssueType[];
+  // loading
+  initializing: boolean;
+  loadingUser: boolean;
+  loadingBoard: boolean;
+  loadingIssue: boolean;
+  loadingIssueType: boolean;
+  // other
+  currentStep: number;
+};
 
 export interface IJiraContext {
-  user: TUserJira | null;
-  currentStep: number;
-  loadingStep: boolean;
-  initializing: boolean;
-  board: TBoardJira["id"] | null;
-  issueTypes: TJiraIssueType["id"][];
-  setUser: Dispatch<SetStateAction<TUserJira | null>>;
-  setCurrentStep: Dispatch<SetStateAction<number>>;
-  setLoadingStep: Dispatch<SetStateAction<boolean>>;
-  setInitializing: Dispatch<SetStateAction<boolean>>;
-  setBoard: Dispatch<SetStateAction<TBoardJira["id"] | null>>;
-  setIssueTypes: Dispatch<SetStateAction<TJiraIssueType["id"][]>>;
+  states: TJiraStates;
+  setStates: SetState<TJiraStates>;
+  getBoards: () => Promise<void>;
+  getIssueTypes: (boardId: string | number, init?: boolean) => Promise<void>;
+  getSprints: (boardId: string | number) => Promise<void>;
+  getIssues: (boardId: string | number, issueTypes: string[]) => Promise<void>;
+  getUser: (email: string, pat: string) => Promise<void>;
+  reset: () => void;
 }
 
-const JiraContext = React.createContext<IJiraContext>({
-  user: null,
-  currentStep: 0,
-  loadingStep: false,
-  initializing: true,
-  board: null,
+const defaultStates: TJiraStates = {
+  issues: [],
+  boards: [],
   issueTypes: [],
-  setUser() {},
-  setLoadingStep() {},
-  setInitializing() {},
-  setCurrentStep() {},
-  setBoard() {},
-  setIssueTypes() {},
+  currentStep: 0,
+  loadingUser: false,
+  initializing: true,
+  loadingBoard: false,
+  loadingIssueType: false,
+  loadingIssue: false,
+};
+
+const JiraContext = React.createContext<IJiraContext>({
+  states: defaultStates,
+  setStates() {},
+  getBoards: () => Promise.resolve(void 0),
+  getIssueTypes: () => Promise.resolve(void 0),
+  getIssues: () => Promise.resolve(void 0),
+  getUser: () => Promise.resolve(void 0),
+  getSprints: () => Promise.resolve(void 0),
+  reset: () => {},
 });
 
 export const JiraProvider = ({
   children,
 }: Readonly<{ children: React.ReactElement }>) => {
-  const [user, setUser] = useState<TUserJira | null>(null);
-  const [loadingStep, setLoadingStep] = useState<boolean>(false);
-  const [initializing, setInitializing] = useState<boolean>(true);
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [board, setBoard] = useState<TBoardJira["id"] | null>(null);
-  const [issueTypes, setIssueTypes] = useState<TJiraIssueType["id"][]>([]);
+  const user = useJiraStore.useUser();
+  const selectedBoard = useJiraStore.useSelectedBoard();
+  const selectedIssueTypes = useJiraStore.useSelectedIssueTypes();
+  const setUser = useJiraStore.useUpdateUser();
+  const setBoard = useJiraStore.useUpdateSelectedBoard();
+  const setIssueTypes = useJiraStore.useUpdateSelectedIssueTypes();
+  const setSprints = useJiraStore.useUpdateSprints();
+  const setLoadingSprints = useJiraStore.useUpdateLoadingSprints();
+  const [states, setStates] = useSetState<TJiraStates>(defaultStates);
+
+  const __resetLocal = () => {
+    setBoard(null);
+    setIssueTypes(null);
+  };
+
+  const handleGetBoards = async (init?: boolean) => {
+    await getJiraBoards({
+      onLoading: (s) => setStates({ loadingBoard: s }),
+      callback: async (boards) => {
+        setStates({ boards });
+
+        // filter local by data from jira
+        if (!selectedBoard) return;
+        if (!boards.find((b) => b.id === selectedBoard.id)) {
+          return __resetLocal();
+        }
+        await handleGetIssueTypeByBoard(selectedBoard.id, init);
+        await handleGetSprints(selectedBoard.id);
+      },
+    });
+  };
+
+  const handleGetIssueTypeByBoard = async (
+    boardId: string | number,
+    init?: boolean
+  ) => {
+    await getJiraIssueTypeByBoard({
+      boardId,
+      onLoading: (s) => setStates({ loadingIssueType: s }),
+      callback: async (issueTypes) => {
+        setStates({ issueTypes });
+
+        // filter local by data from Jira
+        if (!init || !selectedIssueTypes || selectedIssueTypes.length === 0)
+          return;
+        const issueTypesFromJira = issueTypes.map((i) => i.id);
+        const issueTypesAvailable = selectedIssueTypes.filter((i) =>
+          issueTypesFromJira.includes(i.id)
+        );
+
+        setIssueTypes(
+          issueTypesAvailable.length === 0 ? null : issueTypesAvailable
+        );
+      },
+    });
+  };
+
+  const handleGetIssues = async (
+    boardId: string | number,
+    issueTypes: string[]
+  ) => {
+    await getJiraIssues({
+      boardId,
+      issueTypes,
+      onLoading: (s) => setStates({ loadingIssue: s }),
+      callback: async (issues) => {
+        setStates({ issues });
+      },
+    });
+  };
+
+  const handleGetSprints = async (boardId: string | number) => {
+    await getJiraSprints({
+      boardId,
+      onLoading: setLoadingSprints,
+      callback: setSprints,
+    });
+  };
+
+  const handleGetUser = async (email: string, pat: string) => {
+    await getJiraUser({
+      email,
+      pat,
+      onLoading: (s) => setStates({ loadingUser: s }),
+      callback: setUser,
+    });
+  };
 
   useEffect(() => {
-    const defaultBoard = localStorage.getItem(JIRA_CONF_BOARD_ID);
-    const defaultIssueTypes = localStorage.getItem(JIRA_CONF_ISSUE_TYPE_IDS);
-
-    if (defaultBoard) {
-      setBoard(Number(defaultBoard));
-      setIssueTypes(defaultIssueTypes ? defaultIssueTypes.split(",") : []);
-    }
-  }, []);
+    if (user?.accountId) handleGetBoards(true);
+  }, [user?.accountId]);
 
   return (
     <JiraContext.Provider
       value={{
-        user,
-        loadingStep,
-        initializing,
-        currentStep,
-        board,
-        issueTypes,
-        setUser,
-        setLoadingStep,
-        setInitializing,
-        setCurrentStep,
-        setBoard,
-        setIssueTypes,
+        states,
+        setStates,
+        getBoards: handleGetBoards,
+        getIssueTypes: handleGetIssueTypeByBoard,
+        getIssues: handleGetIssues,
+        getUser: handleGetUser,
+        getSprints: handleGetSprints,
+        reset: __resetLocal,
       }}
     >
       {children}
@@ -86,94 +181,3 @@ export const JiraProvider = ({
 };
 
 export const useJira = () => useContext(JiraContext);
-export const useJiraDefaultData = () => {
-  const { user, board, issueTypes, setBoard, setIssueTypes, setCurrentStep } =
-    useJira();
-  const [issueTypeData, setIssueTypeData] = useState<TJiraIssueType[]>([]);
-  const [boardData, setBoardData] = useState<TBoardJira[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const handleGetBoards = async (init?: boolean) => {
-    init && setLoading(true);
-    try {
-      const res = await $client<{ boards: TBoardJira[] }>("jira/boards");
-
-      if (!Array.isArray(res.data.boards)) {
-        return;
-      }
-      setBoardData(res.data.boards);
-
-      // filter local by data from jira
-      if (!board) {
-        return;
-      }
-      if (!res.data.boards.find((b) => b.id === board)) {
-        setBoard(null);
-        setIssueTypes([]);
-        localStorage.removeItem(JIRA_CONF_BOARD_ID);
-        localStorage.removeItem(JIRA_CONF_ISSUE_TYPE_IDS);
-        return;
-      }
-      await handleGetIssueTypeByBoard(board);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      init && setLoading(false);
-    }
-  };
-
-  const handleGetIssueTypeByBoard = async (
-    boardId: string | number,
-    init?: boolean
-  ) => {
-    init && setLoading(true);
-    try {
-      const res = await $client<{ issueTypes: TJiraIssueType[] }>(
-        "jira/issue-types",
-        { params: { boardId } }
-      );
-
-      if (
-        Array.isArray(res.data.issueTypes) &&
-        res.data.issueTypes.length > 0
-      ) {
-        setIssueTypeData(res.data.issueTypes);
-      }
-
-      // filter local by data from Jira
-      if (issueTypes.length === 0) return;
-      const issueTypesFromJira = res.data.issueTypes.map((i) => i.id);
-      const issueTypesAvailable = issueTypes.filter((i) =>
-        issueTypesFromJira.includes(i)
-      );
-
-      if (issueTypesAvailable.length === 0) {
-        setIssueTypes([]);
-        localStorage.removeItem(JIRA_CONF_ISSUE_TYPE_IDS);
-        return;
-      }
-
-      setIssueTypes(issueTypesAvailable);
-      setCurrentStep((s) => (s += 1));
-      localStorage.setItem(
-        JIRA_CONF_ISSUE_TYPE_IDS,
-        issueTypesAvailable.join(",")
-      );
-    } catch (e) {
-      console.error(e);
-    } finally {
-      init && setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) handleGetBoards(true);
-  }, [user]);
-
-  return {
-    loading,
-    boardData,
-    issueTypeData,
-    getIssueTypes: handleGetIssueTypeByBoard,
-  };
-};

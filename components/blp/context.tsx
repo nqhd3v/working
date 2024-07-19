@@ -14,6 +14,8 @@ import {
 } from "@nqhd3v/crazy/types/blueprint";
 import { createContext, useContext, useEffect, useRef } from "react";
 import { SetState } from "ahooks/lib/useSetState";
+import { useBlpStore } from "@/stores/blueprint";
+import { flatMap } from "lodash";
 
 export interface IBlpContext {
   states: TBlueprintSetupStates;
@@ -26,19 +28,15 @@ export interface IBlpContext {
     size?: number
   ) => Promise<void>;
   getTaskLink: (taskId: string) => string;
-  resetLocal: () => void;
 }
 
 const defaultStates: TBlueprintSetupStates = {
-  selectedCategory: null,
-  selectedProject: null,
   currentStep: 0,
   loadingStep: false,
   loadingCategory: false,
   loadingProject: false,
   loadingTask: false,
   initializing: true,
-  user: null,
   requestStates: [],
   categories: [],
   projects: [],
@@ -52,15 +50,11 @@ const BlpContext = createContext<IBlpContext>({
   getCategories: () => Promise.resolve(void 0),
   getTasks: () => Promise.resolve(void 0),
   getTaskLink: () => "",
-  resetLocal() {},
 });
 
 export type TBlueprintSetupStates = {
   currentStep: number;
-  selectedCategory: string | null;
-  selectedProject: string | null;
   // data
-  user: TUserInfo | null;
   projects: TProjectTransformed[];
   categories: TGroupedCategory;
   tasks: TBlpTask[];
@@ -76,18 +70,16 @@ export type TBlueprintSetupStates = {
 const BlpProvider = ({
   children,
 }: Readonly<{ children: React.ReactElement }>) => {
-  const [states, setStates] = useSetState<TBlueprintSetupStates>(defaultStates);
-  const { selectedProject, requestStates, user } = states;
-  const pageURL = useRef("");
+  const user = useBlpStore.useUser();
+  const selectedProject = useBlpStore.useSelectedProject();
+  const selectedCategory = useBlpStore.useSelectedCategory();
+  const setUser = useBlpStore.useUpdateUser();
+  const setProject = useBlpStore.useUpdateSelectedProject();
+  const setCategory = useBlpStore.useUpdateSelectedCategory();
 
-  const resetLocal = () => {
-    setStates({
-      selectedCategory: null,
-      selectedProject: null,
-    });
-    localStorage.removeItem(BLP_CONF_ROOT_PRJ_ID);
-    localStorage.removeItem(BLP_CONF_PRJ_ID);
-  };
+  const [states, setStates] = useSetState<TBlueprintSetupStates>(defaultStates);
+  const { requestStates } = states;
+  const pageURL = useRef("");
 
   // func
   const handleGetProjects = async (init?: boolean): Promise<void> => {
@@ -108,18 +100,16 @@ const BlpProvider = ({
       pageURL.current = res.data.pageURL;
       setStates({
         projects: res.data.projects,
-        requestStates: (res.data.comCds || []).filter((cd) =>
-          cd.key.startsWith(BLP_REQUIREMENT_STATE_START_WITH)
-        ),
+        requestStates: res.data.comCds,
       });
       if (init && selectedProject) {
         const isExistPrj = res.data.projects.find(
-          (p) => p.id === selectedProject
+          (p) => p.id === selectedProject.id
         );
         if (!isExistPrj) {
-          resetLocal();
+          setProject(null);
         } else {
-          await handleGetCategories(selectedProject, init);
+          await handleGetCategories(selectedProject.id, init);
         }
       }
     } catch (e) {
@@ -155,6 +145,15 @@ const BlpProvider = ({
       setStates({
         categories: res.data.categories,
       });
+
+      if (!init || !selectedCategory || res.data.categories.length === 0) {
+        return;
+      }
+
+      const isExistPrj = flatMap(res.data.categories, (c) => c.subItems).find(
+        (p) => p.pjtId === selectedCategory.pjtId
+      );
+      if (!isExistPrj) setCategory(null);
     } catch (e) {
     } finally {
       setStates({
@@ -194,24 +193,28 @@ const BlpProvider = ({
   const getTaskLink = (taskId: string) =>
     `https://blueprint.cyberlogitec.com.vn/${pageURL.current}_1/${taskId}`;
 
-  const initData = () => {
-    const rootPrj = localStorage.getItem(BLP_CONF_ROOT_PRJ_ID);
-    const subPrj = localStorage.getItem(BLP_CONF_PRJ_ID);
-
-    if (!rootPrj || !subPrj) {
-      localStorage.removeItem(BLP_CONF_ROOT_PRJ_ID);
-      localStorage.removeItem(BLP_CONF_PRJ_ID);
-      return;
+  const handleCheckUser = async () => {
+    setStates({ initializing: true });
+    try {
+      const res = await $client("blp/auth");
+      if (res.data.user) {
+        setUser(res.data.user);
+        setStates((prev) => ({
+          ...prev,
+          currentStep: prev.currentStep + 1,
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStates({ initializing: false });
     }
-
-    setStates({
-      selectedProject: rootPrj,
-      selectedCategory: subPrj,
-    });
   };
 
   // use effects
-  useEffect(() => initData(), []);
+  useEffect(() => {
+    handleCheckUser();
+  }, []);
   useEffect(() => {
     if (user) handleGetProjects(true);
   }, [user?.usrId]);
@@ -225,7 +228,6 @@ const BlpProvider = ({
         getCategories: handleGetCategories,
         getTasks: handleGetTasks,
         getTaskLink,
-        resetLocal,
       }}
     >
       {children}
