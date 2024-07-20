@@ -88,7 +88,7 @@ const ModalBiWeeklyReport: React.FC<Omit<ModalProps, "title" | "children">> = (
       <div className="text-gray-400 mb-2">
         Follow{" "}
         <Link
-          href="https://github.com/nqhd3v/crazy/docs/bi-weekly-gen-rp.md"
+          href="https://github.com/nqhd3v/working/blob/develop/docs/bi-weekly-gen-rp.md"
           target="_blank"
           className="!text-gray-500 underline"
         >

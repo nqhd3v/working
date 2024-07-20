@@ -226,10 +226,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nqhd3v/crazy@^0.0.29":
-  version "0.0.29"
-  resolved "https://registry.npmjs.org/@nqhd3v/crazy/-/crazy-0.0.29.tgz"
-  integrity sha512-HwfB1B5UoyHsBv+qEbtPCl6aQ7KnRd2BdOcffH2lj1+qsMGsPWJ5Wz6/ylKDAtC8P8ZVg6Jk8dOOARHi2xV0zQ==
+"@nqhd3v/crazy@^0.0.34":
+  version "0.0.34"
+  resolved "https://registry.npmjs.org/@nqhd3v/crazy/-/crazy-0.0.34.tgz"
+  integrity sha512-5PErvzBnRaHwPNfmpCS5kbu6Fk1CXspYOQ7Shf4qWrzlmpSVvFtbAlvgV5+novihWob7sJ1y8wSp0uUhsw3wjQ==
   dependencies:
     axios "^1.7.2"
     dayjs "^1.11.11"

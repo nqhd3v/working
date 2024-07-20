@@ -7,11 +7,50 @@ import { useEffect } from "react";
 import BlpProvider, { useBlueprint } from "./context";
 import BlpAuth from "./auth";
 import BlpDefaultData from "./default-info";
+import { useBlpStore } from "@/stores/blueprint";
+import { TBlpIteration, TBlpJobType } from "@nqhd3v/crazy/types/blueprint";
+import {
+  getBlpProcessByIterations,
+  getBlpRequireDataForCreateTask,
+} from "@/utils/blp.request";
 
 const InternalBlpSetupCard = () => {
   const {
     states: { currentStep, initializing },
   } = useBlueprint();
+  const user = useBlpStore.useUser();
+  const project = useBlpStore.useSelectedProject();
+  const category = useBlpStore.useSelectedCategory();
+  const setJobTypes = useBlpStore.useUpdateJobTypes();
+  const setIterations = useBlpStore.useUpdateIterations();
+  const setProcesses = useBlpStore.useUpdateProcesses();
+  const setSelectedIteration = useBlpStore.useUpdateSelectedIteration();
+
+  const handleGetDefaultData = async () => {
+    if (!user || !project || !category) return;
+
+    await getBlpRequireDataForCreateTask({
+      projectId: project.id,
+      subProjectId: category.prntPjtId,
+      onData: async ({ jobTypes, iterations }) => {
+        setJobTypes(jobTypes);
+        setIterations(iterations);
+
+        if (iterations.length === 1) {
+          setSelectedIteration(iterations[0]);
+          await getBlpProcessByIterations({
+            projectId: project.id,
+            iterationId: iterations[0].itrtnId,
+            onData: setProcesses,
+          });
+        }
+      },
+    });
+  };
+
+  useEffect(() => {
+    handleGetDefaultData();
+  }, [user?.usrId, project?.id, category?.pjtId]);
 
   return (
     <Card title="Blueprint Setup">

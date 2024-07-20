@@ -2,9 +2,12 @@
 
 Currently, for Bi-Weekly, I just report the meeting I joined in that bi-weekly. So, we need to create a script project to get all activities by following these steps:
 
-- Go to [this page](), select your Google Profile and select `New` to start a new project.
+- Go to [this page](https://script.google.com/home), select your Google Profile and select `New` to start a new project.
 - Go to settings and check the timezone, make sure that timezone is the tz for your country (for me, it's `+7`).
 - Paste the code below and click `Save` and `Run` button on the nav bar.
+- Copy the log and continue your work on that website.
+
+> NOTE: When you click `Run`, it will ask you about permission to read, create,... on your calendar. Just accept and continue. The script below is read your events only.
 
 ```js
 function getCalendarEvents() {

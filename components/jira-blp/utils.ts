@@ -1,3 +1,4 @@
+import { SelectProps } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 
 export enum EBiWeeklyReportMode {
@@ -16,6 +17,11 @@ export type TGCalendarEventTransformed = {
   startTime: Dayjs;
   endTime: Dayjs;
 };
+
+export const JIRA_ISSUE_TO_BLP_TASK_TITLE: SelectProps["options"] = [
+  { label: "{JIRA_ISSUE_KEY}", value: "JIRA_ISSUE_KEY" },
+  { label: "{JIRA_ISSUE_SUMMARY}", value: "JIRA_ISSUE_SUMMARY" },
+];
 
 export const transformGoogleEvents = (events: TGCalendarEvent[]) => {
   const dic = events.reduce(

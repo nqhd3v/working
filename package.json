@@ -11,7 +11,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.3.7",
     "@ant-design/nextjs-registry": "^1.0.0",
-    "@nqhd3v/crazy": "^0.0.29",
+    "@nqhd3v/crazy": "^0.0.34",
     "ahooks": "^3.8.0",
     "antd": "^5.19.1",
     "auto-zustand-selectors-hook": "^2.0.5",
