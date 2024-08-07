@@ -1,6 +1,7 @@
 import { JIRA_TOKEN_KEY } from "@/utils/constant";
 import { checkCookieJira } from "@/utils/utils.server";
 import { Jira } from "@nqhd3v/crazy";
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 export const GET = async (
@@ -12,16 +13,10 @@ export const GET = async (
 
   const checkResult = await checkCookieJira();
   if (!boardId || !checkResult || !checkResult.user) {
-    return Response.json(
-      {
-        error: "user with authenticated info is not found",
-      },
-      {
-        headers: {
-          "Set-Cookie": `${JIRA_TOKEN_KEY}=`,
-        },
-      }
-    );
+    cookies().delete(JIRA_TOKEN_KEY);
+    return Response.json({
+      error: "user with authenticated info is not found",
+    });
   }
 
   const { email, token } = checkResult;

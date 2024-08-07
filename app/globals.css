@@ -11,3 +11,19 @@
 code {
   @apply px-2 font-bold border border-gray-200 bg-gray-100 text-gray-400 rounded not-italic;
 }
+
+form.ant-form.hide-errors .ant-form-item .ant-form-item-explain {
+  @apply !hidden;
+}
+form.ant-form.hide-errors .ant-form-item {
+  @apply mb-2;
+}
+
+/* for editor */
+.ck.ck-powered-by {
+  @apply !hidden;
+}
+.ck.ck-editor__main ul,
+.ck.ck-editor__main ol {
+  @apply ml-5;
+}

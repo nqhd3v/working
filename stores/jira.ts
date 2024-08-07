@@ -1,3 +1,5 @@
+import { TJiraIssueTypeColors } from "@/types";
+import { generateIssueTypeColors } from "@/utils/mapping-data";
 import {
   TBoardJira,
   TJiraIssueType,
@@ -13,6 +15,7 @@ export interface IJiraStore {
   user: TUserJira | null;
   selectedBoard: TBoardJira | null;
   selectedIssueTypes: TJiraIssueType[] | null;
+  issueTypeColors: TJiraIssueTypeColors | null;
   selectedSprint: TSprintJira | null;
   sprints: TSprintJira[] | null;
   loading: {
@@ -34,6 +37,7 @@ const defaultStates: Pick<
   | "sprints"
   | "selectedSprint"
   | "loading"
+  | "issueTypeColors"
 > = {
   user: null,
   loading: {
@@ -43,6 +47,7 @@ const defaultStates: Pick<
   selectedIssueTypes: null,
   sprints: null,
   selectedSprint: null,
+  issueTypeColors: null,
 };
 const useJiraStoreBase = create<IJiraStore>()(
   persist(
@@ -52,8 +57,10 @@ const useJiraStoreBase = create<IJiraStore>()(
       // actions
       updateUser: (user) => set({ user }),
       updateSelectedBoard: (board) => set({ selectedBoard: board }),
-      updateSelectedIssueTypes: (issueTypes) =>
-        set({ selectedIssueTypes: issueTypes }),
+      updateSelectedIssueTypes: (issueTypes) => {
+        const colors = issueTypes ? generateIssueTypeColors(issueTypes) : null;
+        set({ selectedIssueTypes: issueTypes, issueTypeColors: colors });
+      },
       updateSprints: (sprints) => set({ sprints }),
       updateSelectedSprint: (sprint) => set({ selectedSprint: sprint }),
       updateLoadingSprints: (loading) =>

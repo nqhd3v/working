@@ -40,6 +40,7 @@ export const checkCookieBlp = async ({
       password: string;
       user: TUserInfo | null;
       cookies?: string[];
+      blp?: Blueprint;
     }
   | null
   | undefined
@@ -65,11 +66,17 @@ export const checkCookieBlp = async ({
     : null;
 
   if (userWithOldCki) {
-    return { username, password, user: userWithOldCki, cookies: oldCookies };
+    return {
+      username,
+      password,
+      user: userWithOldCki,
+      cookies: oldCookies,
+      blp,
+    };
   }
   await blp.login();
 
-  return { username, password, user: blp.user, cookies: blp.cookies };
+  return { username, password, user: blp.user, cookies: blp.cookies, blp };
 };
 
 export const jsonParse = <T>(inp: string): T | undefined => {

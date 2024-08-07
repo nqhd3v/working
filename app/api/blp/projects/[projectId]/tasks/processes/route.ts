@@ -14,8 +14,14 @@ export const GET = async (
     !iterationId ||
     !checkBlpCookie ||
     !checkBlpCookie.user
-  )
+  ) {
+    console.log(
+      params.projectId && iterationId
+        ? "invalid auth info"
+        : "invalid project/iteration"
+    );
     return Response.json({ processes: null });
+  }
 
   const { username, password, cookies = [] } = checkBlpCookie;
   const blp = new Blueprint(username, password);

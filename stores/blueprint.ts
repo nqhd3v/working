@@ -1,9 +1,12 @@
 import {
   TBlpIteration,
   TBlpJobType,
+  TBlpTask,
+  TBlpTaskDetails,
   TBlpTaskProcess,
   TBlpTaskProcessPhase,
   TComCd,
+  TComCdTransformed,
   TProjectTransformed,
   TRequirementCategory,
   TUserInfo,
@@ -12,6 +15,24 @@ import { create } from "zustand";
 import { createSelectorHooks } from "auto-zustand-selectors-hook";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import {
+  TBlpAssignerByPhase,
+  TMappingWorkHourCase,
+  TPhaseTransformed,
+} from "@/types/blp";
+import { EJiraIssueField } from "@/components/blp/input/task-conf-title.select";
+
+export type TConfForInitTask = {
+  jobType: TBlpJobType;
+  iteration: TBlpIteration;
+  process: TBlpTaskProcess;
+};
+export type TConfForRegTask = {
+  assignerByPhase: TBlpAssignerByPhase[];
+  title: string[];
+  jiraWorkHours: number;
+  mappingJiraWorkHoursCase: TMappingWorkHourCase;
+};
 
 interface IBlpStore {
   user: TUserInfo | null;
@@ -20,9 +41,10 @@ interface IBlpStore {
     process: boolean;
     phases: boolean;
   };
+  tasks: TBlpTask[] | null;
   selectedProject: TProjectTransformed | null;
   selectedCategory: TRequirementCategory | null;
-  comCds: TComCd[] | null;
+  comCds: TComCdTransformed[] | null;
   jobTypes: TBlpJobType[] | null;
   iterations: TBlpIteration[] | null;
   selectedJobType: TBlpJobType | null;
@@ -30,6 +52,10 @@ interface IBlpStore {
   selectedProcess: TBlpTaskProcess | null;
   processes: TBlpTaskProcess[] | null;
   phases: TBlpTaskProcessPhase[] | null;
+  phasesForConf: TPhaseTransformed[] | null;
+  confForInitTask: TConfForInitTask | null;
+  confForRegTask: TConfForRegTask | null;
+  pageURL: string | null;
   updateUser: (user: TUserInfo | null) => void;
   updateSelectedProject: (project: TProjectTransformed | null) => void;
   updateSelectedCategory: (project: TRequirementCategory | null) => void;
@@ -39,17 +65,30 @@ interface IBlpStore {
   updateSelectedJobType: (jobType: TBlpJobType | null) => void;
   updateSelectedIteration: (iteration: TBlpIteration | null) => void;
   updateSelectedProcess: (process: TBlpTaskProcess | null) => void;
-  updateLoading: ({
-    key,
-    state,
-  }: {
-    key: keyof IBlpStore["loading"];
-    state: boolean;
-  }) => void;
-  updateComCds: (comCds: TComCd[]) => void;
-  updatePhases: (phases: TBlpTaskProcessPhase[] | null) => void;
+  updateConfForInitTask: (conf: TConfForInitTask | null) => void;
+  updateConfForRegTask: (conf: TConfForRegTask | null) => void;
+  updateLoading: (
+    key: keyof IBlpStore["loading"]
+  ) => (loading: boolean) => void;
+  updateComCds: (comCds: TComCdTransformed[]) => void;
+  updatePageURL: (pageURL: string | null) => void;
+  updatePhases: (
+    phases: TBlpTaskProcessPhase[] | TPhaseTransformed[] | null,
+    forConf?: boolean
+  ) => void;
+  updateTasks: (tasks: TBlpTask[] | null) => void;
   reset: () => void;
 }
+
+export const DEFAULT_CONF_REG_TASK: {
+  title: string[];
+  jiraWorkHours: number;
+  mappingJiraWorkHoursCase: TMappingWorkHourCase;
+} = {
+  title: [EJiraIssueField.KEY, " - ", EJiraIssueField.SUMMARY],
+  jiraWorkHours: 8,
+  mappingJiraWorkHoursCase: "smaller:origin;greater:add",
+};
 
 const defaultStates: Pick<
   IBlpStore,
@@ -64,25 +103,35 @@ const defaultStates: Pick<
   | "processes"
   | "selectedProcess"
   | "phases"
+  | "phasesForConf"
   | "loading"
+  | "confForInitTask"
+  | "confForRegTask"
+  | "pageURL"
+  | "tasks"
 > = {
   user: null,
+  tasks: null,
   selectedProject: null,
   selectedCategory: null,
   jobTypes: null,
   iterations: null,
   processes: null,
   phases: null,
+  phasesForConf: null,
   selectedJobType: null,
   selectedIteration: null,
   selectedProcess: null,
+  confForInitTask: null,
+  confForRegTask: null,
   comCds: null,
+  pageURL: null,
   loading: { taskRequireData: false, process: false, phases: false },
 };
 
 const useBlpStateBase = create<IBlpStore>()(
   persist(
-    immer((set) => ({
+    immer((set, get) => ({
       // values
       ...defaultStates,
       // actions
@@ -97,11 +146,24 @@ const useBlpStateBase = create<IBlpStore>()(
         set({ selectedIteration: iteration }),
       updateProcesses: (processes) => set({ processes }),
       updateSelectedProcess: (process) => set({ selectedProcess: process }),
-      updatePhases: (phases) => set({ phases }),
-      updateLoading: ({ key, state }) =>
+      updatePageURL: (pageURL) => set({ pageURL }),
+      updatePhases: (phases, forConf) =>
         set((s) => {
-          s.loading[key] = state;
+          s[forConf ? "phasesForConf" : "phases"] = phases as any;
         }),
+      updateLoading: (key) => (loading) =>
+        set((s) => {
+          s.loading[key] = loading;
+        }),
+      updateConfForInitTask: (conf) =>
+        set((s) => {
+          s.confForInitTask = conf;
+        }),
+      updateConfForRegTask: (conf) =>
+        set((s) => {
+          s.confForRegTask = conf;
+        }),
+      updateTasks: (tasks) => set({ tasks }),
       // reset
       reset: () => set(defaultStates),
     })),

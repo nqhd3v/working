@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "ckeditor5/ckeditor5.css";
 import "./globals.css";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 

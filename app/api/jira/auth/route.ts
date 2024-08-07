@@ -2,6 +2,7 @@ import { JIRA_TOKEN_KEY } from "@/utils/constant";
 import { encrypt } from "@/utils/encrypt.server";
 import { checkCookieJira } from "@/utils/utils.server";
 import { Jira } from "@nqhd3v/crazy";
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 export const GET = async () => {
@@ -10,14 +11,8 @@ export const GET = async () => {
     return Response.json({ user: checkJiraCookie.user });
   }
 
-  return Response.json(
-    {},
-    {
-      headers: {
-        "Set-Cookie": `${JIRA_TOKEN_KEY}=`,
-      },
-    }
-  );
+  cookies().delete(JIRA_TOKEN_KEY);
+  return Response.json({});
 };
 
 export const POST = async (req: NextRequest) => {
@@ -27,16 +22,16 @@ export const POST = async (req: NextRequest) => {
   if (user) {
     const encrypted = encrypt([email, pat].join("::=::"));
 
-    return Response.json(
-      {
-        user,
-      },
-      {
-        headers: {
-          "Set-Cookie": `${JIRA_TOKEN_KEY}=${encrypted}`,
-        },
-      }
-    );
+    cookies().set({
+      name: JIRA_TOKEN_KEY,
+      value: encrypted,
+      httpOnly: true,
+      secure: true,
+      path: "/",
+    });
+    return Response.json({
+      user,
+    });
   }
   return Response.json({ user: null });
 };

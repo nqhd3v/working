@@ -2,35 +2,30 @@ import { BLP_TOKEN_KEY } from "@/utils/constant";
 import { encrypt } from "@/utils/encrypt.server";
 import { checkCookieBlp } from "@/utils/utils.server";
 import { Blueprint } from "@nqhd3v/crazy";
+import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 export const GET = async () => {
   const checkBlpCookie = await checkCookieBlp({ isCheckUser: true });
   if (!checkBlpCookie || !checkBlpCookie.user) {
-    return Response.json(
-      {},
-      {
-        headers: {
-          "Set-Cookie": `${BLP_TOKEN_KEY}=`,
-        },
-      }
-    );
+    cookies().delete(BLP_TOKEN_KEY);
+    return Response.json({});
   }
-  const { user, username, password, cookies } = checkBlpCookie;
-  if (!cookies) {
+  const { user, username, password, cookies: blpCookies } = checkBlpCookie;
+  if (!blpCookies) {
     return Response.json({ user });
   }
   const encrypted = encrypt(
-    [username, password, JSON.stringify(cookies)].join("::=::")
+    [username, password, JSON.stringify(blpCookies)].join("::=::")
   );
-  return Response.json(
-    { user: checkBlpCookie.user },
-    {
-      headers: {
-        "Set-Cookie": `${BLP_TOKEN_KEY}=${encrypted}`,
-      },
-    }
-  );
+  cookies().set({
+    name: BLP_TOKEN_KEY,
+    value: encrypted,
+    httpOnly: true,
+    secure: true,
+    path: "/",
+  });
+  return Response.json({ user: checkBlpCookie.user });
 };
 
 export const POST = async (req: NextRequest) => {
@@ -42,16 +37,16 @@ export const POST = async (req: NextRequest) => {
       [username, password, JSON.stringify(blp.cookies)].join("::=::")
     );
 
-    return Response.json(
-      {
-        user: blp.user,
-      },
-      {
-        headers: {
-          "Set-Cookie": `${BLP_TOKEN_KEY}=${encrypted}`,
-        },
-      }
-    );
+    cookies().set({
+      name: BLP_TOKEN_KEY,
+      value: encrypted,
+      httpOnly: true,
+      secure: true,
+      path: "/",
+    });
+    return Response.json({
+      user: blp.user,
+    });
   }
   return Response.json({ user: null });
 };

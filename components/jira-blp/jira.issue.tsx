@@ -1,10 +1,15 @@
+import { useAppConfStore } from "@/stores/app-conf";
 import { useJiraStore } from "@/stores/jira";
 import { getJiraIssues } from "@/utils/jira.request";
 import { TJiraIssue } from "@nqhd3v/crazy/types/jira";
 import { useSetState } from "ahooks";
-import { Table, TableProps, Tag } from "antd";
-import { TableRowSelection } from "antd/es/table/interface";
-import { useEffect, useState } from "react";
+import { notification, Skeleton, Table, TableProps, Tag } from "antd";
+import React, { useEffect, useState } from "react";
+import BlpNewTasks from "./blp-task";
+import { useBlpStore } from "@/stores/blueprint";
+import { getTasksByJob } from "@/app/actions/blueprint";
+import { BLP_REQUIREMENT_STATE_START_WITH } from "@/utils/constant";
+import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 
 const JIRA_BLP_COLUMNS: TableProps<TJiraIssue>["columns"] = [
   {
@@ -34,17 +39,18 @@ const JIRA_BLP_COLUMNS: TableProps<TJiraIssue>["columns"] = [
 ];
 
 const JiraIssuesTable = () => {
-  const board = useJiraStore.useSelectedBoard();
+  const sampleJiraIssue = useAppConfStore.useSampleJiraIssue();
+  const setSampleJiraIssue = useAppConfStore.useUpdateSampleJiraIssue();
   const sprint = useJiraStore.useSelectedSprint();
   const issueTypes = useJiraStore.useSelectedIssueTypes();
+  useBlueprintTasks({ autoRun: true });
+
   const [{ loading, issues }, setStates] = useSetState<{
     loading: boolean;
     issues: TJiraIssue[];
-    selectedIssues: TJiraIssue[];
   }>({
     loading: false,
     issues: [],
-    selectedIssues: [],
   });
 
   const handleGetIssues = async () => {
@@ -54,29 +60,21 @@ const JiraIssuesTable = () => {
       sprintId: sprint.id,
       issueTypes: issueTypes.map((i) => i.id),
       onLoading: (s) => setStates({ loading: s }),
-      callback: (i) => setStates({ issues: i }),
+      callback: async (i) => {
+        setStates({ issues: i });
+        if (!sampleJiraIssue && i.length > 0) setSampleJiraIssue(i[0]);
+      },
     });
-  };
-
-  const handleSelectRows: TableRowSelection<any>["onChange"] = (_, rows) => {
-    setStates({ selectedIssues: rows });
   };
 
   useEffect(() => {
     handleGetIssues();
   }, [sprint?.id]);
 
-  return (
-    <Table
-      columns={JIRA_BLP_COLUMNS}
-      loading={loading}
-      dataSource={issues}
-      rowSelection={{
-        onChange: handleSelectRows,
-      }}
-      pagination={false}
-    />
-  );
+  if (loading) {
+    return <Skeleton active />;
+  }
+  return <BlpNewTasks items={issues} />;
 };
 
 export default JiraIssuesTable;

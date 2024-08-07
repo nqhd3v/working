@@ -2,16 +2,17 @@
 import { useJiraStore } from "@/stores/jira";
 import { mapJiraSprintToOptions } from "@/utils/mapping-data";
 import { TSprintJira } from "@nqhd3v/crazy/types/jira";
-import { Button, Card, Select } from "antd";
+import { Button, Card, Divider, Select } from "antd";
 import { find } from "lodash";
 import JiraIssuesTable from "./jira.issue";
 import BlpJiraConf from "./conf";
-import { useState } from "react";
-import ModalBiWeeklyReport from "./conf/bi-weekly-rp.modal";
+import ModalBiWeeklyReport from "./components/bi-weekly-modal";
+import { useSetState } from "ahooks";
+import ManualDropdown from "./manual";
 
-const JiraBlpTitle: React.FC<{ onOpenBiWeeklyModal?: () => void }> = ({
-  onOpenBiWeeklyModal,
-}) => {
+const JiraBlpTitle: React.FC<{
+  onOpenBiWeeklyModal?: () => void;
+}> = ({ onOpenBiWeeklyModal }) => {
   const board = useJiraStore.useSelectedBoard();
   const sprintData = useJiraStore.useSprints();
   const selectedSprint = useJiraStore.useSelectedSprint();
@@ -28,11 +29,13 @@ const JiraBlpTitle: React.FC<{ onOpenBiWeeklyModal?: () => void }> = ({
     <div className="flex items-center justify-between">
       <div>Create BLP with JIRA</div>
       <div className="flex gap-3 items-center">
+        <ManualDropdown />
         <Button onClick={() => onOpenBiWeeklyModal?.()}>
           Bi-Weekly Report
         </Button>
+        <Divider type="vertical" />
         <Select
-          disabled={!board}
+          disabled={!board || loadingSprints}
           className={"w-[160px]"}
           dropdownStyle={{ width: 240 }}
           value={selectedSprint?.id}
@@ -47,13 +50,17 @@ const JiraBlpTitle: React.FC<{ onOpenBiWeeklyModal?: () => void }> = ({
 };
 
 const JiraToBlp = () => {
-  const [isOpenModalBiWeekly, setOpenModalBiWeekly] = useState(false);
+  const [{ isOpenModalBiWeekly }, setStates] = useSetState<{
+    isOpenModalBiWeekly: boolean;
+  }>({
+    isOpenModalBiWeekly: false,
+  });
   return (
     <>
       <Card
         title={
           <JiraBlpTitle
-            onOpenBiWeeklyModal={() => setOpenModalBiWeekly(true)}
+            onOpenBiWeeklyModal={() => setStates({ isOpenModalBiWeekly: true })}
           />
         }
       >
@@ -61,7 +68,7 @@ const JiraToBlp = () => {
       </Card>
       <ModalBiWeeklyReport
         open={isOpenModalBiWeekly}
-        onCancel={() => setOpenModalBiWeekly(false)}
+        onCancel={() => setStates({ isOpenModalBiWeekly: false })}
       />
     </>
   );

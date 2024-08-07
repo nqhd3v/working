@@ -16,6 +16,7 @@ import { createContext, useContext, useEffect, useRef } from "react";
 import { SetState } from "ahooks/lib/useSetState";
 import { useBlpStore } from "@/stores/blueprint";
 import { flatMap } from "lodash";
+import { getTaskLink } from "@/utils/blp.request";
 
 export interface IBlpContext {
   states: TBlueprintSetupStates;
@@ -37,7 +38,6 @@ const defaultStates: TBlueprintSetupStates = {
   loadingProject: false,
   loadingTask: false,
   initializing: true,
-  requestStates: [],
   categories: [],
   projects: [],
   tasks: [],
@@ -58,7 +58,6 @@ export type TBlueprintSetupStates = {
   projects: TProjectTransformed[];
   categories: TGroupedCategory;
   tasks: TBlpTask[];
-  requestStates: TComCdTransformed[];
   // loading
   loadingStep: boolean;
   initializing: boolean;
@@ -72,13 +71,16 @@ const BlpProvider = ({
 }: Readonly<{ children: React.ReactElement }>) => {
   const user = useBlpStore.useUser();
   const selectedProject = useBlpStore.useSelectedProject();
+  const comCodes = useBlpStore.useComCds();
   const selectedCategory = useBlpStore.useSelectedCategory();
   const setUser = useBlpStore.useUpdateUser();
   const setProject = useBlpStore.useUpdateSelectedProject();
   const setCategory = useBlpStore.useUpdateSelectedCategory();
+  const setPageURL = useBlpStore.useUpdatePageURL();
+  const setComCodes = useBlpStore.useUpdateComCds();
+  const reset = useBlpStore.useReset();
 
   const [states, setStates] = useSetState<TBlueprintSetupStates>(defaultStates);
-  const { requestStates } = states;
   const pageURL = useRef("");
 
   // func
@@ -98,9 +100,11 @@ const BlpProvider = ({
       }
 
       pageURL.current = res.data.pageURL;
+      setPageURL(res.data.pageURL);
+      setComCodes(res.data.comCds);
+
       setStates({
         projects: res.data.projects,
-        requestStates: res.data.comCds,
       });
       if (init && selectedProject) {
         const isExistPrj = res.data.projects.find(
@@ -153,7 +157,10 @@ const BlpProvider = ({
       const isExistPrj = flatMap(res.data.categories, (c) => c.subItems).find(
         (p) => p.pjtId === selectedCategory.pjtId
       );
-      if (!isExistPrj) setCategory(null);
+      if (!isExistPrj) {
+        setCategory(null);
+      } else {
+      }
     } catch (e) {
     } finally {
       setStates({
@@ -167,7 +174,11 @@ const BlpProvider = ({
     reqStates?: string[],
     size = 10
   ) => {
-    const states = reqStates || requestStates.map((s) => s.key);
+    const states =
+      reqStates ||
+      (comCodes || [])
+        .filter((code) => code.key.startsWith(BLP_REQUIREMENT_STATE_START_WITH))
+        .map((s) => s.key);
     try {
       setStates({ loadingTask: true });
       const res = await $client<{ tasks: TBlpTask[] }>(
@@ -190,9 +201,6 @@ const BlpProvider = ({
     }
   };
 
-  const getTaskLink = (taskId: string) =>
-    `https://blueprint.cyberlogitec.com.vn/${pageURL.current}_1/${taskId}`;
-
   const handleCheckUser = async () => {
     setStates({ initializing: true });
     try {
@@ -203,6 +211,8 @@ const BlpProvider = ({
           ...prev,
           currentStep: prev.currentStep + 1,
         }));
+      } else {
+        reset();
       }
     } catch (e) {
       console.error(e);
@@ -227,7 +237,7 @@ const BlpProvider = ({
         getProjects: handleGetProjects,
         getCategories: handleGetCategories,
         getTasks: handleGetTasks,
-        getTaskLink,
+        getTaskLink: (id) => getTaskLink(pageURL.current, id),
       }}
     >
       {children}

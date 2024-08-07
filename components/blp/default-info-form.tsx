@@ -38,10 +38,10 @@ const BlpDefaultForm = () => {
     const { category } = await form.validateFields();
 
     setOpenTestModal(true);
-    await getTasks(category, undefined);
+    await getTasks(category);
   };
 
-  const handleSave: FormProps["onFinish"] = ({ project, category }) => {
+  const handleSave: FormProps["onFinish"] = async ({ project, category }) => {
     setProject(
       find(projects, ({ id }) => id === project) as TProjectTransformed
     );

@@ -29,7 +29,7 @@ const SelectProcess: React.FC<
         projectId: project.id,
         iterationId,
         onData: setProcesses,
-        onLoading: (state) => setLoading({ key: "process", state }),
+        onLoading: setLoading("process"),
       });
     }
   }, [iterationId]);

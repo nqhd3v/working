@@ -1,6 +1,5 @@
 "use client";
 import ProgressIcon from "@/components/progress-icon";
-import { $client } from "@/utils/request";
 import { SettingOutlined, UserOutlined } from "@ant-design/icons";
 import { Card, Steps } from "antd";
 import { useEffect } from "react";
@@ -8,11 +7,12 @@ import BlpProvider, { useBlueprint } from "./context";
 import BlpAuth from "./auth";
 import BlpDefaultData from "./default-info";
 import { useBlpStore } from "@/stores/blueprint";
-import { TBlpIteration, TBlpJobType } from "@nqhd3v/crazy/types/blueprint";
 import {
-  getBlpProcessByIterations,
+  getBlpProcessPhasesByProcess,
   getBlpRequireDataForCreateTask,
 } from "@/utils/blp.request";
+import { TPhaseTransformed } from "@/types/blp";
+import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 
 const InternalBlpSetupCard = () => {
   const {
@@ -21,10 +21,13 @@ const InternalBlpSetupCard = () => {
   const user = useBlpStore.useUser();
   const project = useBlpStore.useSelectedProject();
   const category = useBlpStore.useSelectedCategory();
+  const pageURL = useBlpStore.usePageURL();
   const setJobTypes = useBlpStore.useUpdateJobTypes();
+  const setLoading = useBlpStore.useUpdateLoading();
   const setIterations = useBlpStore.useUpdateIterations();
-  const setProcesses = useBlpStore.useUpdateProcesses();
-  const setSelectedIteration = useBlpStore.useUpdateSelectedIteration();
+  const setPhases = useBlpStore.useUpdatePhases();
+  const initConfTask = useBlpStore.useConfForInitTask();
+  const regTaskConf = useBlpStore.useConfForRegTask();
 
   const handleGetDefaultData = async () => {
     if (!user || !project || !category) return;
@@ -35,18 +38,32 @@ const InternalBlpSetupCard = () => {
       onData: async ({ jobTypes, iterations }) => {
         setJobTypes(jobTypes);
         setIterations(iterations);
-
-        if (iterations.length === 1) {
-          setSelectedIteration(iterations[0]);
-          await getBlpProcessByIterations({
-            projectId: project.id,
-            iterationId: iterations[0].itrtnId,
-            onData: setProcesses,
-          });
-        }
       },
     });
   };
+
+  const handleGetPhases = async () => {
+    if (!project || !category || !initConfTask) return;
+
+    await getBlpProcessPhasesByProcess<TPhaseTransformed>({
+      projectId: project.id,
+      subProjectId: category.prntPjtId,
+      processId: initConfTask.process.bizProcId,
+      iterationId: initConfTask.iteration.itrtnId,
+      onData: (p) => {
+        const phaseValues: TPhaseTransformed[] = p.map((pi, index) => ({
+          ...pi,
+          selected: regTaskConf?.assignerByPhase[index]?.assigner.usrId,
+        }));
+        setPhases(phaseValues, true);
+      },
+      onLoading: setLoading("phases"),
+    });
+  };
+
+  useEffect(() => {
+    handleGetPhases();
+  }, [!initConfTask]);
 
   useEffect(() => {
     handleGetDefaultData();

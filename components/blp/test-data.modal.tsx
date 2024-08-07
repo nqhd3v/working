@@ -2,14 +2,17 @@ import { List, Modal, ModalProps } from "antd";
 import { useBlueprint } from "./context";
 import { TBlpTask } from "@nqhd3v/crazy/types/blueprint";
 import Link from "next/link";
+import { useBlpStore } from "@/stores/blueprint";
+import { BLP_REQUIREMENT_STATE_START_WITH } from "@/utils/constant";
 
 const TestDataModal: React.FC<Omit<ModalProps, "children" | "title">> = (
   props
 ) => {
   const {
-    states: { tasks, loadingTask, requestStates },
+    states: { tasks, loadingTask },
     getTaskLink,
   } = useBlueprint();
+  const comCodes = useBlpStore.useComCds();
 
   return (
     <Modal
@@ -19,7 +22,12 @@ const TestDataModal: React.FC<Omit<ModalProps, "children" | "title">> = (
           <span className="text-gray-400 text-xs font-normal">
             Requirements in states:{" "}
             <span className="text-gray-500 font-bold">
-              {requestStates.map((s) => s.name).join(", ")}
+              {(comCodes || [])
+                .filter((c) =>
+                  c.key.startsWith(BLP_REQUIREMENT_STATE_START_WITH)
+                )
+                .map((s) => s.name)
+                .join(", ")}
             </span>
           </span>
         </div>

@@ -11,6 +11,7 @@ import { useJiraStore } from "@/stores/jira";
 
 const InternalJiraSetupCard = () => {
   const setUser = useJiraStore.useUpdateUser();
+  const reset = useJiraStore.useReset();
   const {
     states: { currentStep, initializing, loadingBoard, loadingIssueType },
     setStates,
@@ -26,6 +27,9 @@ const InternalJiraSetupCard = () => {
           ...p,
           currentStep: p.currentStep + 1,
         }));
+      } else {
+        // clear all data
+        reset();
       }
     } catch (e) {
       console.error(e);

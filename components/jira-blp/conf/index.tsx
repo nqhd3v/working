@@ -1,8 +1,7 @@
 import { SettingOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
-import { Button, Dropdown } from "antd";
-import ModalBlpTaskConf from "./blp-task-conf.modal";
-import ModalBiWeeklyReport from "./bi-weekly-rp.modal";
+import { Button, Dropdown, Tooltip } from "antd";
+import ModalBlpTaskConf from "./blp-task-conf-modal";
 
 const BlpJiraConf = () => {
   const [{ isOpenConfBlpTask }, setStates] = useSetState<{
@@ -11,21 +10,12 @@ const BlpJiraConf = () => {
 
   return (
     <>
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: "dropdown--conf-blp-task",
-              label: "Configure BLP TASK",
-              onClick: () => {
-                setStates({ isOpenConfBlpTask: true });
-              },
-            },
-          ],
-        }}
-      >
-        <Button icon={<SettingOutlined />} />
-      </Dropdown>
+      <Tooltip title="Configure for Blueprint task" placement="left">
+        <Button
+          onClick={() => setStates({ isOpenConfBlpTask: true })}
+          icon={<SettingOutlined />}
+        />
+      </Tooltip>
 
       {/* MODAL */}
       <ModalBlpTaskConf

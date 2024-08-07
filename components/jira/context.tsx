@@ -1,5 +1,4 @@
 import { useJiraStore } from "@/stores/jira";
-import { JIRA_CONF_BOARD_ID, JIRA_CONF_ISSUE_TYPE_IDS } from "@/utils/constant";
 import {
   getJiraBoards,
   getJiraIssues,
@@ -7,16 +6,14 @@ import {
   getJiraSprints,
   getJiraUser,
 } from "@/utils/jira.request";
-import { $client } from "@/utils/request";
 import {
   TBoardJira,
   TJiraIssue,
   TJiraIssueType,
-  TSprintJira,
 } from "@nqhd3v/crazy/types/jira";
 import { useSetState } from "ahooks";
 import { SetState } from "ahooks/lib/useSetState";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect } from "react";
 
 export type TJiraStates = {
   // data
