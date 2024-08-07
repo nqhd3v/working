@@ -27,6 +27,7 @@ export const GET = async (
       {
         projectId: params.projectId,
         state: statesStr.split(","),
+        jobType: "_ALL_",
         isOnlyMe: true,
       },
       cookies

@@ -17,6 +17,7 @@ import { SetState } from "ahooks/lib/useSetState";
 import { useBlpStore } from "@/stores/blueprint";
 import { flatMap } from "lodash";
 import { getTaskLink } from "@/utils/blp.request";
+import { getTasksByJob } from "@/app/actions/blueprint";
 
 export interface IBlpContext {
   states: TBlueprintSetupStates;
@@ -181,20 +182,15 @@ const BlpProvider = ({
         .map((s) => s.key);
     try {
       setStates({ loadingTask: true });
-      const res = await $client<{ tasks: TBlpTask[] }>(
-        `blp/projects/${projectId}/tasks`,
-        {
-          params: {
-            pageURL: pageURL.current,
-            states: states.join(","),
-            size,
-          },
-        }
-      );
+      const res = await getTasksByJob(pageURL.current, {
+        projectId,
+        jobCode: "_ALL_",
+        states,
+      });
 
-      if (!Array.isArray(res.data.tasks)) return;
+      if (res.error || !Array.isArray(res.data)) return;
 
-      setStates({ tasks: res.data.tasks });
+      setStates({ tasks: res.data });
     } catch (e) {
     } finally {
       setStates({ loadingTask: false });

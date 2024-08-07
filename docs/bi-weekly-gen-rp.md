@@ -7,6 +7,8 @@ Currently, for Bi-Weekly, I just report the meeting I joined in that bi-weekly. 
 - Paste the code below and click `Save` and `Run` button on the nav bar.
 - Copy the log and continue your work on that website.
 
+Or use this link: https://script.google.com/d/1lah2Fzsj4nU0kGh6Z5-tAUR3g_j4R0LEkUPoN7uR4T3ymGne6mj70WxT/edit?usp=sharing
+
 > NOTE: When you click `Run`, it will ask you about permission to read, create,... on your calendar. Just accept and continue. The script below is read your events only.
 
 ```js
