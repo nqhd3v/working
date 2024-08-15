@@ -12,6 +12,9 @@ type TJiraRequestProps<T = any> = {
   callback: (data: T) => void | Promise<void>;
 };
 
+export const getIssueLink = (key: string) =>
+  `https://oneline.atlassian.net/browse/${key}`;
+
 export const getJiraBoards = async ({
   onLoading,
   callback,

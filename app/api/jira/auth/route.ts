@@ -2,6 +2,7 @@ import { JIRA_TOKEN_KEY } from "@/utils/constant";
 import { encrypt } from "@/utils/encrypt.server";
 import { checkCookieJira } from "@/utils/utils.server";
 import { Jira } from "@nqhd3v/crazy";
+import dayjs from "dayjs";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -28,6 +29,7 @@ export const POST = async (req: NextRequest) => {
       httpOnly: true,
       secure: true,
       path: "/",
+      expires: dayjs().add(1, "year").toDate(),
     });
     return Response.json({
       user,

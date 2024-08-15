@@ -1,6 +1,7 @@
 import {
   addWorklog,
   createTask,
+  getTaskJobs,
   getTasksByJob,
   removeWorklog,
 } from "@/app/actions/blueprint";
@@ -8,6 +9,7 @@ import { useBlpStore } from "@/stores/blueprint";
 import { BLP_REQUIREMENT_STATE_START_WITH } from "@/utils/constant";
 import { htmlToText } from "@/utils/mapping-data";
 import {
+  TBlpNewTaskResponse,
   TBlpTaskEffort,
   TBlpTaskJob,
   TBlpUserRole,
@@ -25,6 +27,8 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   const comCodes = useBlpStore.useComCds() || [];
   const tasks = useBlpStore.useTasks() || [];
   const setTasks = useBlpStore.useUpdateTasks();
+  const setTaskJobs = useBlpStore.useUpdateTaskJobs();
+  const setLoading = useBlpStore.useUpdateLoading();
 
   const handleGetTasks = async ({
     showNotification,
@@ -37,6 +41,7 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
         });
       return;
     }
+    setLoading("tasks")(true);
     const tasks = await getTasksByJob(pageURL, {
       projectId: category.pjtId,
       jobCode: initTaskConf.jobType.comCd,
@@ -48,23 +53,57 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
     if (tasks.error || tasks.data === null) {
       showNotification &&
         notification.error({ message: tasks.error || "no tasks found" });
+      setLoading("tasks")(false);
       return;
     }
 
     setTasks(tasks.data);
+    setLoading("tasks")(false);
+  };
+
+  const handleGetTaskJobs = async ({
+    taskId,
+    showNotification,
+  }: {
+    taskId: string;
+    showNotification?: boolean;
+  }) => {
+    if (!pageURL || !category || !initTaskConf || !comCodes) {
+      showNotification &&
+        notification.error({
+          message:
+            "You need to set up Blueprint account & init for task first!",
+        });
+      return;
+    }
+    setLoading("taskJobs")(true);
+    const jobs = await getTaskJobs(taskId, category.pjtId);
+
+    if (jobs.error || jobs.data === null) {
+      showNotification &&
+        notification.error({ message: jobs.error || "no tasks found" });
+      setLoading("tasks")(false);
+      return;
+    }
+
+    setTaskJobs(jobs.data || null);
+    setLoading("taskJobs")(false);
   };
 
   const handleCreateTask = async ({
     title,
     description,
+    showNotification,
   }: {
     title: string;
     description: string;
-  }) => {
+    showNotification?: boolean;
+  }): Promise<TBlpNewTaskResponse | null> => {
     if (!project || !category || !initTaskConf || !regTaskConf) {
-      notification.error({
-        message: "Please configure before Create your task!",
-      });
+      showNotification &&
+        notification.error({
+          message: "Please configure before Create your task!",
+        });
       return null;
     }
 
@@ -98,10 +137,11 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
     );
 
     if (result.error || !result.data) {
-      notification.error({
-        message: "Create task failed!",
-        description: result.error || "unknown error when create task!",
-      });
+      showNotification &&
+        notification.error({
+          message: "Create task failed!",
+          description: result.error || "unknown error when create task!",
+        });
       return null;
     }
 
@@ -111,17 +151,29 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   const handleAddWorklogs = async ({
     taskId,
     worklogs,
+    job,
     showNotification,
   }: {
     taskId: string;
-    worklogs: { date: string; mins: number; job: TBlpTaskJob }[];
+    worklogs: { date: string; mins: number }[];
+    job?: TBlpTaskJob;
     showNotification?: boolean;
   }) => {
-    if (!project || !category) {
+    if (!project || !category || !regTaskConf) {
       showNotification &&
         notification.error({
           message: "missed configuration!",
-          description: "you need to configure for Blueprint task first!",
+          description:
+            "you need to configure for Blueprint task first to add worklogs!",
+        });
+      return null;
+    }
+    if (!regTaskConf.jobType && !job) {
+      showNotification &&
+        notification.error({
+          message: "missed configuration!",
+          description:
+            "you need to configure task's job first to add worklogs!",
         });
       return null;
     }
@@ -133,8 +185,8 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
             date: log.date,
             mins: log.mins,
             job: {
-              id: log.job.jbId,
-              name: log.job.jbNm,
+              id: (job || regTaskConf.jobType).jbId,
+              name: (job || regTaskConf.jobType).jbNm,
             },
           },
           {
@@ -241,6 +293,7 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   return {
     tasks,
     getTasks: handleGetTasks,
+    getTaskJobs: handleGetTaskJobs,
     createTask: handleCreateTask,
     addWorklogs: handleAddWorklogs,
     removeWorklogs: handleRemoveWorklogs,

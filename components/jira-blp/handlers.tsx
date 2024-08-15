@@ -7,9 +7,8 @@ import { Dispatch, SetStateAction } from "react";
 
 export const updateWorklogs = async ({
   taskId,
-  workingTime,
+  workingTimes,
   clearOld,
-  jobs,
   efforts,
   addWorklogs,
   removeWorklogs,
@@ -17,10 +16,9 @@ export const updateWorklogs = async ({
 }: {
   // form
   taskId: string;
-  workingTime: Record<string, { date: Dayjs; time: string }[]>;
+  workingTimes: { date: Dayjs; time: string }[];
   clearOld: boolean;
   // other
-  jobs: TBlpTaskJob[];
   efforts?: TBlpTaskEffort[];
   // actions
   addWorklogs: (params: {
@@ -28,8 +26,8 @@ export const updateWorklogs = async ({
     worklogs: {
       date: string;
       mins: number;
-      job: TBlpTaskJob;
     }[];
+    showNotification?: boolean;
   }) => Promise<null | { success: any[]; fail: any[] }>;
   removeWorklogs: (params: {
     taskId: string;
@@ -42,19 +40,10 @@ export const updateWorklogs = async ({
     }>
   >;
 }) => {
-  const logs = Object.keys(workingTime || {})
-    .map((jobId) => {
-      if (!Array.isArray(workingTime[jobId])) return [];
-      return workingTime[jobId].map((datetime) => {
-        const job = jobs.find((j) => j.jbId === jobId) as TBlpTaskJob;
-        return {
-          date: datetime.date.format("YYYYMMDD"),
-          mins: (convertJiraTimeToHours(datetime.time) || 0) * 60,
-          job,
-        };
-      });
-    })
-    .flat();
+  const worklogs = workingTimes.map((time) => ({
+    date: time.date.format("YYYYMMDD"),
+    mins: (convertJiraTimeToHours(time.time) || 0) * 60,
+  }));
   // remove
 
   if (clearOld && Array.isArray(efforts) && efforts.length > 0) {
@@ -91,7 +80,7 @@ export const updateWorklogs = async ({
   }
 
   setState({ state: "loading", message: "creating new worklogs..." });
-  const addRes = await addWorklogs({ taskId, worklogs: logs });
+  const addRes = await addWorklogs({ taskId, worklogs });
   if (!addRes) {
     setState({
       state: "error",
@@ -107,13 +96,13 @@ export const updateWorklogs = async ({
         <div className="flex items-center gap-2 text-green-600">
           <CheckCircleFilled />
           <span>
-            Removed <b>{addRes.success.length}</b> items successfully!
+            Added <b>{addRes.success.length}</b> items successfully!
           </span>
         </div>
         <div className="flex items-center gap-2 text-red-400">
           <ExclamationCircleFilled />
           <span>
-            Remove <b>{addRes.fail.length}</b> items failed!
+            Add <b>{addRes.fail.length}</b> items failed!
           </span>
         </div>
       </>

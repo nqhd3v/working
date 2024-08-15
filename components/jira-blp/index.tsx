@@ -2,22 +2,29 @@
 import { useJiraStore } from "@/stores/jira";
 import { mapJiraSprintToOptions } from "@/utils/mapping-data";
 import { TSprintJira } from "@nqhd3v/crazy/types/jira";
-import { Button, Card, Divider, Select } from "antd";
+import { Button, Card, Divider, Select, Tooltip } from "antd";
 import { find } from "lodash";
 import JiraIssuesTable from "./jira.issue";
 import BlpJiraConf from "./conf";
 import ModalBiWeeklyReport from "./components/bi-weekly-modal";
 import { useSetState } from "ahooks";
 import ManualDropdown from "./manual";
+import { ReloadOutlined } from "@ant-design/icons";
+import { useBlpStore } from "@/stores/blueprint";
+import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 
 const JiraBlpTitle: React.FC<{
   onOpenBiWeeklyModal?: () => void;
 }> = ({ onOpenBiWeeklyModal }) => {
   const board = useJiraStore.useSelectedBoard();
+  const isLoadingBlpTasks = useBlpStore.useLoading().tasks;
   const sprintData = useJiraStore.useSprints();
   const selectedSprint = useJiraStore.useSelectedSprint();
   const setSprint = useJiraStore.useUpdateSelectedSprint();
-  const { sprints: loadingSprints } = useJiraStore.useLoading();
+  const { sprints: loadingSprints, issues: loadingIssues } =
+    useJiraStore.useLoading();
+
+  const { getTasks } = useBlueprintTasks();
 
   const handlePickSprint = (selectedId: number) => {
     if (!sprintData) return;
@@ -35,7 +42,7 @@ const JiraBlpTitle: React.FC<{
         </Button>
         <Divider type="vertical" />
         <Select
-          disabled={!board || loadingSprints}
+          disabled={!board || loadingSprints || loadingIssues}
           className={"w-[160px]"}
           dropdownStyle={{ width: 240 }}
           value={selectedSprint?.id}
@@ -43,6 +50,14 @@ const JiraBlpTitle: React.FC<{
           loading={loadingSprints}
           onChange={handlePickSprint}
         />
+        <Divider type="vertical" />
+        <Tooltip title="Load tasks from Blueprint" placement="left">
+          <Button
+            icon={<ReloadOutlined spin={isLoadingBlpTasks} />}
+            disabled={isLoadingBlpTasks}
+            onClick={() => getTasks()}
+          />
+        </Tooltip>
         <BlpJiraConf />
       </div>
     </div>

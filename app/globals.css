@@ -27,3 +27,8 @@ form.ant-form.hide-errors .ant-form-item {
 .ck.ck-editor__main ol {
   @apply ml-5;
 }
+
+/* for Upload */
+.upload-drag-drop .ant-upload.ant-upload-drag {
+  @apply mb-3;
+}

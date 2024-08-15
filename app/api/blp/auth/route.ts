@@ -2,6 +2,7 @@ import { BLP_TOKEN_KEY } from "@/utils/constant";
 import { encrypt } from "@/utils/encrypt.server";
 import { checkCookieBlp } from "@/utils/utils.server";
 import { Blueprint } from "@nqhd3v/crazy";
+import dayjs from "dayjs";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -24,6 +25,7 @@ export const GET = async () => {
     httpOnly: true,
     secure: true,
     path: "/",
+    expires: dayjs().add(1, "year").toDate(),
   });
   return Response.json({ user: checkBlpCookie.user });
 };

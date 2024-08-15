@@ -5,7 +5,9 @@ import { useState } from "react";
 const UploadImagesForTask: React.FC<{
   onChange?: (files: UploadFile[]) => void;
   value?: UploadFile[];
-}> = ({ value, onChange }) => {
+  maxFiles?: number;
+  disabled?: boolean;
+}> = ({ value = [], onChange, maxFiles = 8, disabled }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
 
@@ -15,6 +17,7 @@ const UploadImagesForTask: React.FC<{
       <div className="mt-2">Upload</div>
     </button>
   );
+
   return (
     <>
       <Upload
@@ -23,7 +26,9 @@ const UploadImagesForTask: React.FC<{
         onChange={({ fileList }) => onChange?.(fileList)}
         beforeUpload={() => false}
       >
-        {!Array.isArray(value) || value.length > 8 ? null : uploadButton}
+        {!Array.isArray(value) || value.length > maxFiles || disabled
+          ? null
+          : uploadButton}
       </Upload>
       {previewImage && (
         <Image

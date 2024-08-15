@@ -3,6 +3,7 @@ import {
   TBlpJobType,
   TBlpTask,
   TBlpTaskDetails,
+  TBlpTaskJob,
   TBlpTaskProcess,
   TBlpTaskProcessPhase,
   TComCd,
@@ -32,6 +33,7 @@ export type TConfForRegTask = {
   title: string[];
   jiraWorkHours: number;
   mappingJiraWorkHoursCase: TMappingWorkHourCase;
+  jobType: TBlpTaskJob;
 };
 
 interface IBlpStore {
@@ -40,6 +42,8 @@ interface IBlpStore {
     taskRequireData: boolean;
     process: boolean;
     phases: boolean;
+    tasks: boolean;
+    taskJobs: boolean;
   };
   tasks: TBlpTask[] | null;
   selectedProject: TProjectTransformed | null;
@@ -56,6 +60,7 @@ interface IBlpStore {
   confForInitTask: TConfForInitTask | null;
   confForRegTask: TConfForRegTask | null;
   pageURL: string | null;
+  taskJobs: TBlpTaskJob[] | null;
   updateUser: (user: TUserInfo | null) => void;
   updateSelectedProject: (project: TProjectTransformed | null) => void;
   updateSelectedCategory: (project: TRequirementCategory | null) => void;
@@ -77,6 +82,7 @@ interface IBlpStore {
     forConf?: boolean
   ) => void;
   updateTasks: (tasks: TBlpTask[] | null) => void;
+  updateTaskJobs: (tasks: TBlpTaskJob[] | null) => void;
   reset: () => void;
 }
 
@@ -109,6 +115,7 @@ const defaultStates: Pick<
   | "confForRegTask"
   | "pageURL"
   | "tasks"
+  | "taskJobs"
 > = {
   user: null,
   tasks: null,
@@ -126,7 +133,14 @@ const defaultStates: Pick<
   confForRegTask: null,
   comCds: null,
   pageURL: null,
-  loading: { taskRequireData: false, process: false, phases: false },
+  loading: {
+    taskRequireData: false,
+    process: false,
+    phases: false,
+    tasks: false,
+    taskJobs: false,
+  },
+  taskJobs: null,
 };
 
 const useBlpStateBase = create<IBlpStore>()(
@@ -151,7 +165,7 @@ const useBlpStateBase = create<IBlpStore>()(
         set((s) => {
           s[forConf ? "phasesForConf" : "phases"] = phases as any;
         }),
-      updateLoading: (key) => (loading) =>
+      updateLoading: (key: keyof IBlpStore["loading"]) => (loading) =>
         set((s) => {
           s.loading[key] = loading;
         }),
@@ -164,6 +178,7 @@ const useBlpStateBase = create<IBlpStore>()(
           s.confForRegTask = conf;
         }),
       updateTasks: (tasks) => set({ tasks }),
+      updateTaskJobs: (jobs) => set({ taskJobs: jobs }),
       // reset
       reset: () => set(defaultStates),
     })),

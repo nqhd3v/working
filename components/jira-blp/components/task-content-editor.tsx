@@ -18,6 +18,7 @@ import {
   IndentBlock,
   Italic,
   List,
+  Link,
   ListProperties,
   Paragraph,
   Strikethrough,
@@ -43,6 +44,7 @@ const TaskDescription: React.FC<{
             "strikethrough",
             "|",
             "heading",
+            "link",
             "|",
             "numberedList",
             "bulletedList",
@@ -78,6 +80,7 @@ const TaskDescription: React.FC<{
           Alignment,
           Table,
           Autoformat,
+          Link,
         ],
         list: {
           properties: {

@@ -127,10 +127,7 @@ const BiWeeklyTaskForm: React.FC<{
 
     await updateWorklogs({
       taskId,
-      jobs: taskJobs,
-      workingTime: {
-        [jobId]: workingTimes,
-      },
+      workingTimes,
       efforts: worklogs,
       clearOld: false,
       addWorklogs,

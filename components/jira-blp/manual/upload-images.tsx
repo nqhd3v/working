@@ -7,7 +7,6 @@ import {
   notification,
   UploadFile,
 } from "antd";
-import UploadImagesForTask from "../components/upload-file";
 import { addFilesToTask, uploadFile } from "@/app/actions/blueprint";
 import { useEffect, useState } from "react";
 import { TFileUploadInfo } from "@nqhd3v/crazy/types/blueprint";
@@ -18,6 +17,7 @@ import {
 } from "@ant-design/icons";
 import path from "path";
 import InputTaskId from "../components/input-task-id";
+import UploadDragDrop from "../components/upload-drag-drop";
 
 const UploadImagesModal: React.FC<
   Omit<ModalProps, "children" | "title" | "footer">
@@ -125,7 +125,7 @@ const UploadImagesModal: React.FC<
           <InputTaskId />
         </Form.Item>
         <Form.Item name="files">
-          <UploadImagesForTask />
+          <UploadDragDrop />
         </Form.Item>
         <Button type="primary" htmlType="submit">
           Upload images

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Checkbox,
   Form,
@@ -10,9 +11,7 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import {
-  CheckCircleFilled,
   CheckCircleOutlined,
-  ExclamationCircleFilled,
   ExclamationCircleOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
@@ -24,14 +23,9 @@ import {
   TProjectTransformed,
 } from "@nqhd3v/crazy/types/blueprint";
 import { TTaskDetail } from "@/types/blp";
-import { convertJiraTimeToHours, minsToJiraTime } from "@/utils/mapping-data";
-import {
-  addWorklog,
-  getTaskJobs,
-  removeWorklog,
-} from "@/app/actions/blueprint";
+import { minsToJiraTime } from "@/utils/mapping-data";
+import { getTaskJobs } from "@/app/actions/blueprint";
 import { useBlpStore } from "@/stores/blueprint";
-import { callMultiActions } from "@/hooks/use-settle";
 import FormItemWorkingTime from "../components/form-item-work-time";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 import { updateWorklogs } from "../handlers";
@@ -52,7 +46,7 @@ const AddWorklogModal: React.FC<
 
   const handleUpdate: FormProps["onFinish"] = async ({
     taskId,
-    workingTime,
+    workingTimes,
     clearOld,
   }) => {
     if (!project || !category) {
@@ -62,9 +56,8 @@ const AddWorklogModal: React.FC<
 
     await updateWorklogs({
       taskId,
-      workingTime,
+      workingTimes,
       clearOld,
-      jobs: taskJobs,
       efforts: actualEfforts,
       addWorklogs,
       removeWorklogs,
@@ -127,11 +120,18 @@ const AddWorklogModal: React.FC<
 
   return (
     <Modal title="Add worklogs for task" footer={null} width={680} {...props}>
+      <Alert
+        message="this feature is in maintenance mode"
+        showIcon
+        type="warning"
+        className="!mb-3"
+      />
       <Form
         form={form}
         onFinish={handleUpdate}
         layout="vertical"
         initialValues={{ clearOld: false }}
+        disabled
       >
         <div className="grid grid-cols-2 gap-5 mb-5">
           <div>
@@ -173,7 +173,7 @@ const AddWorklogModal: React.FC<
           <Form.Item label="Working Time" className="!mb-0">
             {taskJobs.length > 0 ? (
               taskJobs.map((job) => (
-                <Form.List name={["workingTime", job.jbId]} key={job.jbId}>
+                <Form.List name={["workingTimes", job.jbId]} key={job.jbId}>
                   {(fields, { add, remove }) => {
                     if (fields.length === 0) {
                       return (

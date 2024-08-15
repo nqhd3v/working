@@ -20,6 +20,7 @@ export interface IJiraStore {
   sprints: TSprintJira[] | null;
   loading: {
     sprints: boolean;
+    issues: boolean;
   };
   updateUser: (user: TUserJira | null) => void;
   updateSelectedBoard: (board: TBoardJira | null) => void;
@@ -27,6 +28,7 @@ export interface IJiraStore {
   updateSprints: (sprints: TSprintJira[] | null) => void;
   updateSelectedSprint: (sprint: TSprintJira | null) => void;
   updateLoadingSprints: (loading: boolean) => void;
+  updateLoadingIssues: (loading: boolean) => void;
   reset: () => void;
 }
 const defaultStates: Pick<
@@ -42,6 +44,7 @@ const defaultStates: Pick<
   user: null,
   loading: {
     sprints: false,
+    issues: false,
   },
   selectedBoard: null,
   selectedIssueTypes: null,
@@ -66,6 +69,10 @@ const useJiraStoreBase = create<IJiraStore>()(
       updateLoadingSprints: (loading) =>
         set((state) => {
           state.loading.sprints = loading;
+        }),
+      updateLoadingIssues: (loading) =>
+        set((state) => {
+          state.loading.issues = loading;
         }),
       // reset
       reset: () => set(defaultStates),

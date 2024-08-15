@@ -41,17 +41,13 @@ const JIRA_BLP_COLUMNS: TableProps<TJiraIssue>["columns"] = [
 const JiraIssuesTable = () => {
   const sampleJiraIssue = useAppConfStore.useSampleJiraIssue();
   const setSampleJiraIssue = useAppConfStore.useUpdateSampleJiraIssue();
+  const setLoading = useJiraStore.useUpdateLoadingIssues();
   const sprint = useJiraStore.useSelectedSprint();
   const issueTypes = useJiraStore.useSelectedIssueTypes();
+  const { issues: loadingIssues } = useJiraStore.useLoading();
   useBlueprintTasks({ autoRun: true });
 
-  const [{ loading, issues }, setStates] = useSetState<{
-    loading: boolean;
-    issues: TJiraIssue[];
-  }>({
-    loading: false,
-    issues: [],
-  });
+  const [issues, setStates] = useState<TJiraIssue[]>([]);
 
   const handleGetIssues = async () => {
     if (!sprint || !issueTypes) return;
@@ -59,9 +55,9 @@ const JiraIssuesTable = () => {
     await getJiraIssues({
       sprintId: sprint.id,
       issueTypes: issueTypes.map((i) => i.id),
-      onLoading: (s) => setStates({ loading: s }),
+      onLoading: (s) => setLoading(s),
       callback: async (i) => {
-        setStates({ issues: i });
+        setStates(i);
         if (!sampleJiraIssue && i.length > 0) setSampleJiraIssue(i[0]);
       },
     });
@@ -71,7 +67,7 @@ const JiraIssuesTable = () => {
     handleGetIssues();
   }, [sprint?.id]);
 
-  if (loading) {
+  if (loadingIssues) {
     return <Skeleton active />;
   }
   return <BlpNewTasks items={issues} />;

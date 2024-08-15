@@ -6,10 +6,11 @@ import TaskConfTittle, {
 import InputWorkHour from "@/components/blp/input/work-hour.input";
 import { useBlpStore } from "@/stores/blueprint";
 import { TMappingWorkHourCase, TPhaseTransformed } from "@/types/blp";
-import { TBlpUserRole } from "@nqhd3v/crazy/types/blueprint";
+import { TBlpTaskJob, TBlpUserRole } from "@nqhd3v/crazy/types/blueprint";
 import { Button, Empty, Form, FormProps, notification, Skeleton } from "antd";
 import { isEqual } from "lodash";
 import { useEffect } from "react";
+import TaskJobSelector from "../../components/task-job-select";
 
 const SetDefaultConfTask = () => {
   const loading = useBlpStore.useLoading().phases;
@@ -47,7 +48,8 @@ const RegConfForm = () => {
     title: string[];
     workHours: number;
     mappingCase: TMappingWorkHourCase;
-  }>["onFinish"] = ({ phases, title, workHours, mappingCase }) => {
+    jobType: TBlpTaskJob;
+  }>["onFinish"] = ({ phases, title, workHours, mappingCase, jobType }) => {
     const assignerByPhase = phases.map((phase) => ({
       code: phase.code,
       assigner: phase.assigners.find(
@@ -59,6 +61,7 @@ const RegConfForm = () => {
       title,
       jiraWorkHours: workHours,
       mappingJiraWorkHoursCase: mappingCase,
+      jobType,
     });
     notification.success({
       message: "Save configuration for register a new task successfully!",
@@ -155,6 +158,13 @@ const RegConfForm = () => {
                     </Form.Item>
                   );
                 }}
+              </Form.Item>
+              <Form.Item
+                name="jobType"
+                label="Job type for task"
+                rules={[{ required: true, message: "pick job type" }]}
+              >
+                <TaskJobSelector />
               </Form.Item>
             </div>
             <div>
