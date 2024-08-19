@@ -13,15 +13,16 @@ import {
 } from "@/utils/blp.request";
 import { TPhaseTransformed } from "@/types/blp";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
+import { useTourGuideRefs } from "../tour-guide";
 
 const InternalBlpSetupCard = () => {
   const {
     states: { currentStep, initializing },
   } = useBlueprint();
+  const { blpAuth } = useTourGuideRefs();
   const user = useBlpStore.useUser();
   const project = useBlpStore.useSelectedProject();
   const category = useBlpStore.useSelectedCategory();
-  const pageURL = useBlpStore.usePageURL();
   const setJobTypes = useBlpStore.useUpdateJobTypes();
   const setLoading = useBlpStore.useUpdateLoading();
   const setIterations = useBlpStore.useUpdateIterations();
@@ -70,7 +71,7 @@ const InternalBlpSetupCard = () => {
   }, [user?.usrId, project?.id, category?.pjtId]);
 
   return (
-    <Card title="Blueprint Setup">
+    <Card title="Blueprint Setup" ref={blpAuth}>
       <Steps
         current={currentStep}
         direction="vertical"

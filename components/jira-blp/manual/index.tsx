@@ -2,8 +2,10 @@ import { Button, Dropdown } from "antd";
 import UploadImagesModal from "./upload-images";
 import { useSetState } from "ahooks";
 import AddWorklogModal from "./add-worklog";
+import { useTourGuideRefs } from "@/components/tour-guide";
 
 const ManualDropdown = () => {
+  const { manualActions } = useTourGuideRefs();
   const [{ openUploadModal, openAddWorklogModal }, setStates] = useSetState<{
     openUploadModal: boolean;
     openAddWorklogModal: boolean;
@@ -30,7 +32,7 @@ const ManualDropdown = () => {
           ],
         }}
       >
-        <Button>Manual</Button>
+        <Button ref={manualActions}>Manual</Button>
       </Dropdown>
 
       <UploadImagesModal

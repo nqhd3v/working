@@ -2,7 +2,7 @@
 import { useJiraStore } from "@/stores/jira";
 import { mapJiraSprintToOptions } from "@/utils/mapping-data";
 import { TSprintJira } from "@nqhd3v/crazy/types/jira";
-import { Button, Card, Divider, Select, Tooltip } from "antd";
+import { Button, Card, Divider, GetRef, Select, Tooltip } from "antd";
 import { find } from "lodash";
 import JiraIssuesTable from "./jira.issue";
 import BlpJiraConf from "./conf";
@@ -12,10 +12,13 @@ import ManualDropdown from "./manual";
 import { ReloadOutlined } from "@ant-design/icons";
 import { useBlpStore } from "@/stores/blueprint";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
+import { useTourGuideRefs } from "../tour-guide";
+import { RefObject } from "react";
 
 const JiraBlpTitle: React.FC<{
   onOpenBiWeeklyModal?: () => void;
 }> = ({ onOpenBiWeeklyModal }) => {
+  const { biWeekly, selectSprint, checkBlpTask } = useTourGuideRefs();
   const board = useJiraStore.useSelectedBoard();
   const isLoadingBlpTasks = useBlpStore.useLoading().tasks;
   const sprintData = useJiraStore.useSprints();
@@ -37,25 +40,28 @@ const JiraBlpTitle: React.FC<{
       <div>Create BLP with JIRA</div>
       <div className="flex gap-3 items-center">
         <ManualDropdown />
-        <Button onClick={() => onOpenBiWeeklyModal?.()}>
+        <Button onClick={() => onOpenBiWeeklyModal?.()} ref={biWeekly}>
           Bi-Weekly Report
         </Button>
         <Divider type="vertical" />
-        <Select
-          disabled={!board || loadingSprints || loadingIssues}
-          className={"w-[160px]"}
-          dropdownStyle={{ width: 240 }}
-          value={selectedSprint?.id}
-          options={mapJiraSprintToOptions(sprintData || [])}
-          loading={loadingSprints}
-          onChange={handlePickSprint}
-        />
+        <div ref={selectSprint}>
+          <Select
+            disabled={!board || loadingSprints || loadingIssues}
+            className={"w-[160px]"}
+            dropdownStyle={{ width: 240 }}
+            value={selectedSprint?.id}
+            options={mapJiraSprintToOptions(sprintData || [])}
+            loading={loadingSprints}
+            onChange={handlePickSprint}
+          />
+        </div>
         <Divider type="vertical" />
         <Tooltip title="Load tasks from Blueprint" placement="left">
           <Button
             icon={<ReloadOutlined spin={isLoadingBlpTasks} />}
             disabled={isLoadingBlpTasks}
             onClick={() => getTasks()}
+            ref={checkBlpTask}
           />
         </Tooltip>
         <BlpJiraConf />

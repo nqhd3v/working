@@ -2,11 +2,13 @@ import { SettingOutlined } from "@ant-design/icons";
 import { useSetState } from "ahooks";
 import { Button, Dropdown, Tooltip } from "antd";
 import ModalBlpTaskConf from "./blp-task-conf-modal";
+import { useTourGuideRefs } from "@/components/tour-guide";
 
 const BlpJiraConf = () => {
   const [{ isOpenConfBlpTask }, setStates] = useSetState<{
     isOpenConfBlpTask: boolean;
   }>({ isOpenConfBlpTask: false });
+  const { jiraIssueConf } = useTourGuideRefs();
 
   return (
     <>
@@ -14,6 +16,7 @@ const BlpJiraConf = () => {
         <Button
           onClick={() => setStates({ isOpenConfBlpTask: true })}
           icon={<SettingOutlined />}
+          ref={jiraIssueConf}
         />
       </Tooltip>
 

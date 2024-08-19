@@ -96,6 +96,7 @@ const RegConfForm = () => {
           mappingCase:
             registerConf?.mappingJiraWorkHoursCase ||
             "smaller:origin;greater:add",
+          jobType: registerConf?.jobType,
         }}
         form={form}
         layout="vertical"

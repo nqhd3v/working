@@ -8,8 +8,10 @@ import JiraAuth from "./auth";
 import { JiraProvider, useJira } from "./context";
 import JiraDefaultInfo from "./default-info";
 import { useJiraStore } from "@/stores/jira";
+import { useTourGuideRefs } from "../tour-guide";
 
 const InternalJiraSetupCard = () => {
+  const { jiraAuth } = useTourGuideRefs();
   const setUser = useJiraStore.useUpdateUser();
   const reset = useJiraStore.useReset();
   const {
@@ -43,7 +45,7 @@ const InternalJiraSetupCard = () => {
   }, []);
 
   return (
-    <Card title="JIRA Setup">
+    <Card title="JIRA Setup" ref={jiraAuth}>
       <Steps
         current={currentStep}
         direction="vertical"

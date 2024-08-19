@@ -44,7 +44,6 @@ const JiraIssuesTable = () => {
   const setLoading = useJiraStore.useUpdateLoadingIssues();
   const sprint = useJiraStore.useSelectedSprint();
   const issueTypes = useJiraStore.useSelectedIssueTypes();
-  const { issues: loadingIssues } = useJiraStore.useLoading();
   useBlueprintTasks({ autoRun: true });
 
   const [issues, setStates] = useState<TJiraIssue[]>([]);
@@ -67,9 +66,6 @@ const JiraIssuesTable = () => {
     handleGetIssues();
   }, [sprint?.id]);
 
-  if (loadingIssues) {
-    return <Skeleton active />;
-  }
   return <BlpNewTasks items={issues} />;
 };
 
