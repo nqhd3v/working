@@ -126,7 +126,7 @@ export async function getTasksByJob(
       pageURL,
       {
         isOnlyMe: true,
-        jobType: jobCode,
+        jobType: jobCode === "all" ? "_ALL_" : jobCode,
         projectId,
         state: states,
         size: 50,

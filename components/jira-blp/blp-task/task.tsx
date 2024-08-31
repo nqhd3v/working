@@ -21,7 +21,6 @@ import dynamic from "next/dynamic";
 import React, { useState } from "react";
 import { round } from "lodash";
 import { TBlpTask, TBlpTaskEffort } from "@nqhd3v/crazy/types/blueprint";
-import UploadImagesForTask from "../components/upload-file";
 import FormItemWorkingTime from "../components/form-item-work-time";
 import ExistedTask from "../components/existed-task";
 import { TTaskDetail } from "@/types/blp";
@@ -30,7 +29,8 @@ import dayjs, { Dayjs } from "dayjs";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 import UploadDragDrop from "../components/upload-drag-drop";
 import useProcess from "@/hooks/use-process";
-import { getIssueLink } from "@/utils/jira.request";
+import { getDefaultTaskContent } from "./utils";
+import { useJiraStore } from "@/stores/jira";
 
 const Description = dynamic(() => import("../components/task-content-editor"), {
   ssr: false,
@@ -44,14 +44,23 @@ const TaskCollapseBody: React.FC<{
   const { content, setState } = useProcess();
   const [taskDetails, setTaskDetails] = useState<TTaskDetail | null>(null);
   const { getTasks, createTask, addWorklogs } = useBlueprintTasks();
+  const sprint = useJiraStore.useSelectedSprint();
   const { title: taskTitleFormat, jiraWorkHours } =
     useBlpStore.useConfForRegTask() || DEFAULT_CONF_REG_TASK;
+  const phaseAssigner = useBlpStore.useConfPhaseAssignerByIssueType();
+  const phases = phaseAssigner?.[data.fields.issuetype.id]?.phases;
+
+  const picForTask =
+    Array.isArray(phases) && phases[1] && phases[1].selected
+      ? phases[1].assigners.find((a) => a.usrId === phases[1].selected)
+      : undefined;
 
   const handleCreateTask = async (title: string, description: string) => {
     const newTask = await createTask({
       title,
       description,
       showNotification: true,
+      issueType: data.fields.issuetype,
     });
     if (!newTask) return null;
 
@@ -140,10 +149,11 @@ const TaskCollapseBody: React.FC<{
             : generateBlpTaskTitleByFormat(data, taskTitleFormat),
           description: taskDetails
             ? taskDetails.reqCtnt
-            : "<b>Jira Ref:</b> " +
-              `<a href="${getIssueLink(data.key)}">` +
-              `${data.key} - ${data.fields.summary}` +
-              `</a><br><br>${data.fields.description}`,
+            : getDefaultTaskContent({
+                pic: picForTask,
+                issue: data,
+                sprintName: sprint?.name!,
+              }),
           files: taskDetails
             ? transformBlpImages(taskDetails.arrFileRegist)
             : [],

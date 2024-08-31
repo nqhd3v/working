@@ -2,11 +2,9 @@ import {
   TBlpIteration,
   TBlpJobType,
   TBlpTask,
-  TBlpTaskDetails,
   TBlpTaskJob,
   TBlpTaskProcess,
   TBlpTaskProcessPhase,
-  TComCd,
   TComCdTransformed,
   TProjectTransformed,
   TRequirementCategory,
@@ -18,10 +16,13 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import {
   TBlpAssignerByPhase,
+  TConfPhaseAssignerByIssueType,
+  TConfPhaseAssignerValue,
   TMappingWorkHourCase,
   TPhaseTransformed,
 } from "@/types/blp";
 import { EJiraIssueField } from "@/components/blp/input/task-conf-title.select";
+import { TJiraIssueType } from "@nqhd3v/crazy/types/jira";
 
 export type TConfForInitTask = {
   jobType: TBlpJobType;
@@ -29,7 +30,6 @@ export type TConfForInitTask = {
   process: TBlpTaskProcess;
 };
 export type TConfForRegTask = {
-  assignerByPhase: TBlpAssignerByPhase[];
   title: string[];
   jiraWorkHours: number;
   mappingJiraWorkHoursCase: TMappingWorkHourCase;
@@ -61,6 +61,8 @@ interface IBlpStore {
   confForRegTask: TConfForRegTask | null;
   pageURL: string | null;
   taskJobs: TBlpTaskJob[] | null;
+  confPhaseAssignerByIssueType: TConfPhaseAssignerByIssueType | null;
+  confPhaseAssignerSprintTasks: TConfPhaseAssignerValue | null;
   updateUser: (user: TUserInfo | null) => void;
   updateSelectedProject: (project: TProjectTransformed | null) => void;
   updateSelectedCategory: (project: TRequirementCategory | null) => void;
@@ -72,6 +74,12 @@ interface IBlpStore {
   updateSelectedProcess: (process: TBlpTaskProcess | null) => void;
   updateConfForInitTask: (conf: TConfForInitTask | null) => void;
   updateConfForRegTask: (conf: TConfForRegTask | null) => void;
+  updateConfPhaseAssignersByIssueType: (
+    conf: TConfPhaseAssignerByIssueType | null
+  ) => void;
+  updateConfPhaseAssignersSprintTasks: (
+    conf: TConfPhaseAssignerValue | null
+  ) => void;
   updateLoading: (
     key: keyof IBlpStore["loading"]
   ) => (loading: boolean) => void;
@@ -90,10 +98,12 @@ export const DEFAULT_CONF_REG_TASK: {
   title: string[];
   jiraWorkHours: number;
   mappingJiraWorkHoursCase: TMappingWorkHourCase;
+  assignerByPhase: TBlpAssignerByPhase[];
 } = {
   title: [EJiraIssueField.KEY, " - ", EJiraIssueField.SUMMARY],
   jiraWorkHours: 8,
   mappingJiraWorkHoursCase: "smaller:origin;greater:add",
+  assignerByPhase: [],
 };
 
 const defaultStates: Pick<
@@ -116,6 +126,8 @@ const defaultStates: Pick<
   | "pageURL"
   | "tasks"
   | "taskJobs"
+  | "confPhaseAssignerByIssueType"
+  | "confPhaseAssignerSprintTasks"
 > = {
   user: null,
   tasks: null,
@@ -131,6 +143,8 @@ const defaultStates: Pick<
   selectedProcess: null,
   confForInitTask: null,
   confForRegTask: null,
+  confPhaseAssignerByIssueType: null,
+  confPhaseAssignerSprintTasks: null,
   comCds: null,
   pageURL: null,
   loading: {
@@ -179,6 +193,11 @@ const useBlpStateBase = create<IBlpStore>()(
         }),
       updateTasks: (tasks) => set({ tasks }),
       updateTaskJobs: (jobs) => set({ taskJobs: jobs }),
+      // @latest-conf
+      updateConfPhaseAssignersByIssueType: (conf) =>
+        set({ confPhaseAssignerByIssueType: conf }),
+      updateConfPhaseAssignersSprintTasks: (conf) =>
+        set({ confPhaseAssignerSprintTasks: conf }),
       // reset
       reset: () => set(defaultStates),
     })),

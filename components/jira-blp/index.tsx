@@ -14,6 +14,7 @@ import { useBlpStore } from "@/stores/blueprint";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 import { useTourGuideRefs } from "../tour-guide";
 import { RefObject } from "react";
+import ConfCreateTaskModal from "./conf/conf-phase-assigner";
 
 const JiraBlpTitle: React.FC<{
   onOpenBiWeeklyModal?: () => void;
@@ -40,7 +41,11 @@ const JiraBlpTitle: React.FC<{
       <div>Create BLP with JIRA</div>
       <div className="flex gap-3 items-center">
         <ManualDropdown />
-        <Button onClick={() => onOpenBiWeeklyModal?.()} ref={biWeekly}>
+        <Button
+          disabled={!selectSprint}
+          onClick={() => onOpenBiWeeklyModal?.()}
+          ref={biWeekly}
+        >
           Bi-Weekly Report
         </Button>
         <Divider type="vertical" />
@@ -91,6 +96,7 @@ const JiraToBlp = () => {
         open={isOpenModalBiWeekly}
         onCancel={() => setStates({ isOpenModalBiWeekly: false })}
       />
+      <ConfCreateTaskModal />
     </>
   );
 };

@@ -39,7 +39,7 @@ const Newbie = () => {
         <span
           className="text-gray-400 cursor-pointer"
           onClick={() => {
-            localStorage.setItem("cr@zy_experienced", "");
+            localStorage.setItem("cr@zy_experienced", Date.now().toString());
             setIsShowGuide(false);
           }}
         >

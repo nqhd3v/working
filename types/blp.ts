@@ -1,9 +1,14 @@
 import {
+  TNewTaskBaseInfoValues,
+  TNewTaskBaseInfoValuesFullFilled,
+} from "@/components/jira-blp/conf/conf-phase-assigner/types";
+import {
   TBlpTaskDetails,
   TBlpTaskEffort,
   TBlpTaskProcessPhase,
   TBlpUserRole,
 } from "@nqhd3v/crazy/types/blueprint";
+import { TJiraIssueType } from "@nqhd3v/crazy/types/jira";
 
 export type TPhaseTransformed = {
   code: TBlpTaskProcessPhase["phsCd"];
@@ -23,3 +28,12 @@ export type TBlpAssignerByPhase = {
 };
 
 export type TTaskDetail = TBlpTaskDetails & { worklogs: TBlpTaskEffort[] };
+
+export type TConfPhaseAssignerValue = {
+  base: TNewTaskBaseInfoValuesFullFilled;
+  phases: TPhaseTransformed[];
+};
+export type TConfPhaseAssignerByIssueType = Record<
+  TJiraIssueType["id"],
+  TConfPhaseAssignerValue
+>;

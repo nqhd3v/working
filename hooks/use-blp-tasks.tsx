@@ -17,12 +17,15 @@ import {
 import { notification } from "antd";
 import { useEffect } from "react";
 import { callMultiActions } from "./use-settle";
+import { TJiraIssueType } from "@nqhd3v/crazy/types/jira";
 
 export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   const pageURL = useBlpStore.usePageURL();
   const project = useBlpStore.useSelectedProject();
   const category = useBlpStore.useSelectedCategory();
-  const initTaskConf = useBlpStore.useConfForInitTask();
+  const confTaskByIssueType = useBlpStore.useConfPhaseAssignerByIssueType();
+  const confTaskSprintTasks = useBlpStore.useConfPhaseAssignerSprintTasks();
+
   const regTaskConf = useBlpStore.useConfForRegTask();
   const comCodes = useBlpStore.useComCds() || [];
   const tasks = useBlpStore.useTasks() || [];
@@ -33,7 +36,7 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   const handleGetTasks = async ({
     showNotification,
   }: { showNotification?: boolean } = {}) => {
-    if (!pageURL || !category || !initTaskConf || !comCodes) {
+    if (!pageURL || !category || !comCodes) {
       showNotification &&
         notification.error({
           message:
@@ -44,7 +47,7 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
     setLoading("tasks")(true);
     const tasks = await getTasksByJob(pageURL, {
       projectId: category.pjtId,
-      jobCode: initTaskConf.jobType.comCd,
+      jobCode: "all",
       states: comCodes
         .filter((c) => c.key.startsWith(BLP_REQUIREMENT_STATE_START_WITH))
         .map((c) => c.key),
@@ -68,7 +71,7 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
     taskId: string;
     showNotification?: boolean;
   }) => {
-    if (!pageURL || !category || !initTaskConf || !comCodes) {
+    if (!pageURL || !category || !comCodes) {
       showNotification &&
         notification.error({
           message:
@@ -94,36 +97,62 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
     title,
     description,
     showNotification,
+    issueType,
+    forSprintTasks,
   }: {
     title: string;
     description: string;
     showNotification?: boolean;
+    issueType?: TJiraIssueType;
+    forSprintTasks?: boolean;
   }): Promise<TBlpNewTaskResponse | null> => {
-    if (!project || !category || !initTaskConf || !regTaskConf) {
+    if ((!issueType && !forSprintTasks) || (issueType && forSprintTasks)) {
+      console.error(
+        "Unknown action! Please add once of type for this action (issueType or forSprintTasks only)"
+      );
+      notification.error({
+        message: "Client error!",
+        description: "Unknown action for creating a new task!",
+      });
+      return null;
+    }
+    if (
+      !project ||
+      !category ||
+      !confTaskSprintTasks ||
+      !confTaskByIssueType ||
+      (issueType && !confTaskByIssueType[issueType.id]) ||
+      !regTaskConf
+    ) {
       showNotification &&
         notification.error({
           message: "Please configure before Create your task!",
         });
       return null;
     }
+    const confForTask = forSprintTasks
+      ? confTaskSprintTasks
+      : confTaskByIssueType[(issueType as TJiraIssueType).id];
 
     const result = await createTask(
       {
         project,
         category,
         jobType: {
-          code: initTaskConf.jobType.comCd,
-          name: initTaskConf.jobType.cdNm,
+          code: confForTask.base.jobType.comCd,
+          name: confForTask.base.jobType.cdNm,
         },
         process: {
-          id: initTaskConf.process.bizProcId,
-          name: initTaskConf.process.bizProcNm,
+          id: confForTask.base.process.bizProcId,
+          name: confForTask.base.process.bizProcNm,
         },
-        iterationId: initTaskConf.iteration.itrtnId,
-        phasesWithAssigner: regTaskConf.assignerByPhase.reduce(
+        iterationId: confForTask.base.iteration.itrtnId,
+        phasesWithAssigner: confForTask.phases.reduce(
           (res: Record<string, TBlpUserRole>, cur) => {
             if (res[cur.code]) return res;
-            res[cur.code] = cur.assigner;
+            res[cur.code] = cur.assigners.find(
+              (a) => a.usrId === cur.selected
+            ) as TBlpUserRole;
             return res;
           },
           {}
@@ -280,15 +309,10 @@ export const useBlueprintTasks = ({ autoRun }: { autoRun?: boolean } = {}) => {
   };
 
   useEffect(() => {
-    if (!autoRun || !pageURL || !category || !initTaskConf || !comCodes) return;
+    if (!autoRun || !pageURL || !category || !comCodes) return;
 
     handleGetTasks();
-  }, [
-    pageURL === null,
-    initTaskConf === null,
-    category === null,
-    comCodes === null,
-  ]);
+  }, [pageURL === null, category === null, comCodes === null]);
 
   return {
     tasks,

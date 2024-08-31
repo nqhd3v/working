@@ -6,7 +6,9 @@ import {
 import { useState } from "react";
 
 export type TProcessState = "loading" | "error" | "done";
-export type TSetProcessState = (state: TProcessState) => (msg: string) => void;
+export type TSetProcessState = (
+  state: TProcessState | null
+) => (msg: string) => void;
 const useProcess = (): {
   content: React.ReactNode;
   state: { state: TProcessState; message: string } | null;
@@ -31,8 +33,8 @@ const useProcess = (): {
   return {
     content: displayContent,
     state,
-    setState: (state: TProcessState) => (message: string) =>
-      setState({ state, message }),
+    setState: (state: TProcessState | null) => (message: string) =>
+      setState(state ? { state, message } : null),
   };
 };
 

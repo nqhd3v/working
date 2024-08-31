@@ -1,24 +1,28 @@
 import { useDataOptions } from "@/hooks/use-data-options";
+import { TProcessState } from "@/hooks/use-process";
 import { useBlpStore } from "@/stores/blueprint";
 import { getBlpProcessByIterations } from "@/utils/blp.request";
 import { TBlpIteration, TBlpTaskProcess } from "@nqhd3v/crazy/types/blueprint";
 import { Select, SelectProps } from "antd";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const SelectProcess: React.FC<
   Omit<SelectProps, "value" | "onChange" | "options"> & {
     onChange?: (process: TBlpTaskProcess) => void;
     value?: TBlpTaskProcess;
     iterationId?: TBlpIteration["itrtnId"];
+    global?: boolean;
   }
-> = ({ iterationId, value, onChange, ...props }) => {
+> = ({ iterationId, value, global = true, onChange, ...props }) => {
+  const [localProcesses, setLocalProcesses] = useState<TBlpTaskProcess[]>([]);
+  const [localLoading, setLocalLoading] = useState(false);
   const processes = useBlpStore.useProcesses();
   const project = useBlpStore.useSelectedProject();
   const loading = useBlpStore.useLoading().process;
   const setLoading = useBlpStore.useUpdateLoading();
   const setProcesses = useBlpStore.useUpdateProcesses();
   const { dic, options } = useDataOptions<TBlpTaskProcess>(
-    processes,
+    global ? processes : localProcesses,
     "bizProcId",
     "bizProcNm"
   );
@@ -28,8 +32,8 @@ const SelectProcess: React.FC<
       getBlpProcessByIterations({
         projectId: project.id,
         iterationId,
-        onData: setProcesses,
-        onLoading: setLoading("process"),
+        onData: global ? setProcesses : setLocalProcesses,
+        onLoading: global ? setLoading("process") : setLocalLoading,
       });
     }
   }, [iterationId]);
@@ -39,7 +43,7 @@ const SelectProcess: React.FC<
       placeholder="process"
       {...props}
       value={value?.bizProcId}
-      loading={loading || props.loading}
+      loading={loading || localLoading || props.loading}
       options={options}
       onChange={(processId) => {
         onChange?.(dic[processId]);

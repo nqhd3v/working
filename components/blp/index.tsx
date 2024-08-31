@@ -43,28 +43,28 @@ const InternalBlpSetupCard = () => {
     });
   };
 
-  const handleGetPhases = async () => {
-    if (!project || !category || !initConfTask) return;
+  // const handleGetPhases = async () => {
+  //   if (!project || !category || !initConfTask) return;
 
-    await getBlpProcessPhasesByProcess<TPhaseTransformed>({
-      projectId: project.id,
-      subProjectId: category.prntPjtId,
-      processId: initConfTask.process.bizProcId,
-      iterationId: initConfTask.iteration.itrtnId,
-      onData: (p) => {
-        const phaseValues: TPhaseTransformed[] = p.map((pi, index) => ({
-          ...pi,
-          selected: regTaskConf?.assignerByPhase[index]?.assigner.usrId,
-        }));
-        setPhases(phaseValues, true);
-      },
-      onLoading: setLoading("phases"),
-    });
-  };
+  //   await getBlpProcessPhasesByProcess<TPhaseTransformed>({
+  //     projectId: project.id,
+  //     subProjectId: category.prntPjtId,
+  //     processId: initConfTask.process.bizProcId,
+  //     iterationId: initConfTask.iteration.itrtnId,
+  //     onData: (p) => {
+  //       const phaseValues: TPhaseTransformed[] = p.map((pi, index) => ({
+  //         ...pi,
+  //         selected: regTaskConf?.assignerByPhase[index]?.assigner.usrId,
+  //       }));
+  //       setPhases(phaseValues, true);
+  //     },
+  //     onLoading: setLoading("phases"),
+  //   });
+  // };
 
-  useEffect(() => {
-    handleGetPhases();
-  }, [!initConfTask]);
+  // useEffect(() => {
+  //   handleGetPhases();
+  // }, [!initConfTask]);
 
   useEffect(() => {
     handleGetDefaultData();

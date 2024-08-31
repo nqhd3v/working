@@ -81,6 +81,9 @@ const TourGuide: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Tour
         open={opening}
         onClose={() => setOpening(false)}
+        onFinish={() => {
+          localStorage.setItem("cr@zy_experienced", Date.now().toString());
+        }}
         steps={[
           {
             title: "Authenticate for Jira",

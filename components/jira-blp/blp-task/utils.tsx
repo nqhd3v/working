@@ -1,26 +1,28 @@
-import { TJiraIssue } from "@nqhd3v/crazy/types/jira";
+import { TJiraIssue, TJiraIssueType } from "@nqhd3v/crazy/types/jira";
 import {
   Badge,
   Button,
   CollapseProps,
   Modal,
+  notification,
   Skeleton,
   Space,
   Tag,
 } from "antd";
 import TaskCollapseBody from "./task";
-import { ReloadOutlined } from "@ant-design/icons";
+import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import Link from "next/link";
-import { TBlpTask } from "@nqhd3v/crazy/types/blueprint";
+import { TBlpTask, TBlpUserRole } from "@nqhd3v/crazy/types/blueprint";
 import { TJiraIssueTypeColors } from "@/types";
 import { twMerge } from "tailwind-merge";
+import { getIssueLink } from "@/utils/jira.request";
+import { useBlpStore } from "@/stores/blueprint";
 
 export const renderIssues = ({
   items,
   tasks,
   colors,
   loading = false,
-  isInTour = false,
   getTaskLink,
 }: {
   items: TJiraIssue[];
@@ -34,7 +36,7 @@ export const renderIssues = ({
     return [
       {
         id: "mock_guide",
-        key: "mock_guide",
+        key: "mock_guide_0",
         headerClass: "!items-center",
         collapsible: "disabled",
         label: <CollapseIssueLabelSkeleton />,
@@ -42,7 +44,7 @@ export const renderIssues = ({
       },
       {
         id: "mock_guide",
-        key: "mock_guide",
+        key: "mock_guide_1",
         headerClass: "!items-center",
         collapsible: "disabled",
         label: <CollapseIssueLabelSkeleton />,
@@ -50,7 +52,7 @@ export const renderIssues = ({
       },
       {
         id: "mock_guide",
-        key: "mock_guide",
+        key: "mock_guide_2",
         headerClass: "!items-center",
         collapsible: "disabled",
         label: <CollapseIssueLabelSkeleton />,
@@ -105,55 +107,7 @@ export const renderIssues = ({
             onClick={(e) => e.stopPropagation()}
             htmlType="reset"
           />
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              Modal.confirm({
-                title: "Confirm your action",
-                content: (
-                  <>
-                    {blpTask ? (
-                      <div className="text-gray-500 font-bold mb-2">
-                        It looks like you already created another BLP task
-                        before!
-                      </div>
-                    ) : null}
-
-                    <div className="text-gray-500 mb-0">
-                      This action will send the request to Blueprint to:
-                    </div>
-                    <div className="pl-5">
-                      <Badge
-                        color={blpTask ? "red" : "green"}
-                        text="Create a new task"
-                        className={twMerge("!block", blpTask && "line-through")}
-                      />
-                      <Badge
-                        color="green"
-                        text="Update worklogs"
-                        className="!block"
-                      />
-                      <Badge
-                        color="green"
-                        text="Update images"
-                        className="!block"
-                      />
-                    </div>
-                    <div className="text-red-400 font-bold">
-                      You cannot UNDO this action!
-                    </div>
-                  </>
-                ),
-                okButtonProps: {
-                  form: `form-issue--${item.id}`,
-                  htmlType: "submit",
-                },
-                okText: "Continue",
-              });
-            }}
-          >
-            Save
-          </Button>
+          <SaveTaskAction task={blpTask} issue={item} />
         </div>
       ),
       children: <TaskCollapseBody data={item} existedTask={blpTask} />,
@@ -179,5 +133,96 @@ export const CollapseIssueExtraSkeleton = () => {
       <Skeleton.Button active className="w-8" />
       <Skeleton.Button active className="w-16" />
     </div>
+  );
+};
+
+export const SaveTaskAction: React.FC<{
+  task?: TBlpTask;
+  issue: TJiraIssue;
+}> = ({ task, issue }) => {
+  const confByIssueType = useBlpStore.useConfPhaseAssignerByIssueType();
+  const currentConf = confByIssueType?.[issue.fields.issuetype.id];
+
+  return (
+    <Button
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!currentConf) {
+          notification.error({
+            message: "Missed configuration!",
+            description: (
+              <>
+                Hover on <SettingOutlined />, click on{" "}
+                <b>Configure task&apos;s info by issue-type</b>, and try again
+                later!
+              </>
+            ),
+          });
+          return;
+        }
+        Modal.confirm({
+          title: "Confirm your action",
+          content: (
+            <>
+              {task ? (
+                <div className="text-gray-500 font-bold mb-2">
+                  It looks like you already created another BLP task before!
+                </div>
+              ) : null}
+
+              <div className="text-gray-500 mb-0">
+                This action will send the request to Blueprint to:
+              </div>
+              <div className="pl-5">
+                <Badge
+                  color={task ? "red" : "green"}
+                  text="Create a new task"
+                  className={twMerge("!block", task && "line-through")}
+                />
+                <Badge
+                  color="green"
+                  text="Update worklogs"
+                  className="!block"
+                />
+                <Badge color="green" text="Update images" className="!block" />
+              </div>
+              <div className="text-red-400 font-bold">
+                You cannot UNDO this action!
+              </div>
+            </>
+          ),
+          okButtonProps: {
+            form: `form-issue--${issue.id}`,
+            htmlType: "submit",
+          },
+          okText: "Continue",
+        });
+      }}
+    >
+      Save
+    </Button>
+  );
+};
+
+export const getDefaultTaskContent = ({
+  pic,
+  issue,
+  sprintName,
+}: {
+  pic?: TBlpUserRole;
+  issue: TJiraIssue;
+  sprintName: string;
+}) => {
+  return (
+    `<p>Dear ${pic ? pic.usrNm : "PIC"}!<p>` +
+    `<p>I would like to update the tasks that I have done in the ${sprintName}!<br>` +
+    "Please help me approve this ticket.<br>" +
+    "Thank you.</p>" +
+    '<p class="text-small">Jira Issue: ' +
+    `<a href="${getIssueLink(issue.key)}">` +
+    `${issue.key} - ${issue.fields.summary}</a></p>` +
+    "<p>Description of the task: " +
+    issue.fields.description +
+    "</p>"
   );
 };

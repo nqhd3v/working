@@ -1,6 +1,11 @@
 import { addFilesToTask, uploadFile } from "@/app/actions/blueprint";
 import { TSetProcessState } from "@/hooks/use-process";
-import { TBlpTaskFile, TFileUploadInfo } from "@nqhd3v/crazy/types/blueprint";
+import { TPhaseTransformed } from "@/types/blp";
+import {
+  TBlpTaskFile,
+  TBlpUserRole,
+  TFileUploadInfo,
+} from "@nqhd3v/crazy/types/blueprint";
 import { SelectProps, UploadFile } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import path from "path";
@@ -136,4 +141,13 @@ export const uploadFilesToBlueprint = async ({
     filenames: lstFlNm,
     addToTaskResult: filesInTaskResult.data,
   };
+};
+
+export const getConfirmAssigner = (
+  phases?: TPhaseTransformed[]
+): TBlpUserRole | undefined => {
+  if (!Array.isArray(phases) || phases.length < 1 || !phases[1].selected)
+    return undefined;
+
+  return phases[1].assigners.find((a) => a.usrId === phases[1].selected);
 };

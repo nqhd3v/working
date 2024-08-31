@@ -1,6 +1,6 @@
 import { convertJiraTimeToHours } from "@/utils/mapping-data";
 import { CheckCircleFilled, ExclamationCircleFilled } from "@ant-design/icons";
-import { TBlpTaskEffort, TBlpTaskJob } from "@nqhd3v/crazy/types/blueprint";
+import { TBlpTaskEffort } from "@nqhd3v/crazy/types/blueprint";
 import { notification } from "antd";
 import { Dayjs } from "dayjs";
 import { Dispatch, SetStateAction } from "react";

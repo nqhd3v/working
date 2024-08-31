@@ -9,27 +9,35 @@ import {
   Checkbox,
   Dropdown,
   Form,
+  FormProps,
   Input,
   Modal,
   ModalProps,
   notification,
   Select,
+  Tooltip,
 } from "antd";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   EBiWeeklyReportMode,
+  getConfirmAssigner,
   TGCalendarEvent,
   transformGoogleEvents,
 } from "../utils";
 import dynamic from "next/dynamic";
 import FormItemWorkingTime from "./form-item-work-time";
-import { Dayjs } from "dayjs";
-import { minsToJiraTime } from "@/utils/mapping-data";
+import dayjs, { Dayjs } from "dayjs";
+import {
+  convertJiraTimeToHours,
+  jiraTime,
+  minsToJiraTime,
+} from "@/utils/mapping-data";
 import InputTaskId, { TGetTaskHandler } from "./input-task-id";
 import {
   TBlpTaskDetails,
   TBlpTaskJob,
+  TBlpUserRole,
   TProjectTransformed,
 } from "@nqhd3v/crazy/types/blueprint";
 import { getTaskJobs } from "@/app/actions/blueprint";
@@ -37,28 +45,53 @@ import { useBlpStore } from "@/stores/blueprint";
 import { updateWorklogs } from "../handlers";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 import { useBlueprintTask } from "@/hooks/use-blp-task";
+import useProcess from "@/hooks/use-process";
+import { useJiraStore } from "@/stores/jira";
+import { MEETING_EVENTS_RETRIEVE_SCRIPT } from "@/utils/constant";
 
 const Description = dynamic(() => import("./task-content-editor"), {
   ssr: false,
 });
+
+const defaultTextContent = ({
+  pic,
+  startDate,
+  endDate,
+}: {
+  pic?: TBlpUserRole;
+  startDate: Dayjs;
+  endDate: Dayjs;
+}) => {
+  return (
+    `<p>Dear ${pic ? pic.usrNm : "PIC"},</p>` +
+    "<p>I would like to update the Scrum Events that I participated from " +
+    startDate.format("Do MMMM") +
+    " to " +
+    endDate.format("Do MMMM") +
+    ".<br>Please help me approve this ticket.<br>" +
+    "Thank you.</p><br>"
+  );
+};
 
 const BiWeeklyTaskForm: React.FC<{
   events: TGCalendarEvent[];
   onUpdateEvents: () => void;
 }> = ({ events, onUpdateEvents }) => {
   const [taskJobs, setTaskJobs] = useState<TBlpTaskJob[]>([]);
-  const [state, setState] = useState<null | {
-    state: "loading" | "error" | "done";
-    message: string;
-  }>(null);
-  const { addWorklogs, removeWorklogs } = useBlueprintTasks();
+  // const [state, setState] = useState<null | {
+  //   state: "loading" | "error" | "done";
+  //   message: string;
+  // }>(null);
+  const { content, setState } = useProcess();
+  const { createTask, addWorklogs, removeWorklogs } = useBlueprintTasks();
   const { getJobs } = useBlueprintTask();
+  const sprint = useJiraStore.useSelectedSprint();
+  const category = useBlpStore.useSelectedCategory();
+  const conf = useBlpStore.useConfPhaseAssignerSprintTasks();
 
   const [form] = Form.useForm();
   const ev = transformGoogleEvents(events);
   const formInitialValues = useMemo(() => {
-    const firstEvent = ev[0];
-    const lastEvent = ev[ev.length - 1];
     let textContent = "<ul>";
     const workingTimeByDate: Record<string, { date: Dayjs; mins: number }> =
       {} satisfies Record<string, { date: Dayjs; mins: number }>;
@@ -72,11 +105,12 @@ const BiWeeklyTaskForm: React.FC<{
         };
       }
       // textContent
-      textContent += '<li><p style="margin-left:0px;"><strong>';
-      textContent += e.d.format("DD/MM/YYYY");
-      textContent += "</strong></p><ul>";
+      textContent += '<li><p style="margin-left:0px;">';
+      textContent += e.d.format("dddd, MMMM D");
+      textContent += ":</p><ul>";
       // meeting in day
       e.e.forEach(({ title, startTime, endTime }) => {
+        const hoursGap = endTime.diff(startTime, "hours", true);
         workingTimeByDate[e.d.format("DD/MM/YYYY")].mins += endTime.diff(
           startTime,
           "minutes"
@@ -85,18 +119,30 @@ const BiWeeklyTaskForm: React.FC<{
         textContent += `${title} - `;
         textContent += `(${startTime.format("HH:mm")} - ${endTime.format(
           "HH:mm"
-        )})`;
+        )}) - `;
+        textContent += `${hoursGap}h`;
         textContent += "</p></li>";
       });
       textContent += "</ul></li>";
     });
     textContent += "</ul>";
+    const startDate = dayjs(new Date(sprint!.startDate));
+    const endDate = dayjs(new Date(sprint!.endDate));
+    const sprintRangeDate = [
+      startDate.format("MMM D"),
+      endDate.format("MMM D"),
+    ].join(" - ");
 
     return {
-      title: `Bi-Weekly Report (${firstEvent.d.format(
-        "MMM D, YYYY"
-      )} - ${lastEvent.d.format("MMM D, YYYY")})`,
-      content: textContent,
+      title: `[${category!.pjtNm}] ${
+        sprint!.name
+      } (${sprintRangeDate}) - Scrum Events Report`,
+      content:
+        defaultTextContent({
+          startDate,
+          endDate,
+          pic: getConfirmAssigner(conf?.phases),
+        }) + textContent,
 
       workingTimes: Object.values(workingTimeByDate)
         .sort((a, b) => (a.date.isAfter(b.date) ? 1 : -1))
@@ -125,14 +171,39 @@ const BiWeeklyTaskForm: React.FC<{
       return;
     }
 
-    await updateWorklogs({
+    // await updateWorklogs({
+    //   taskId,
+    //   workingTimes,
+    //   efforts: worklogs,
+    //   clearOld: false,
+    //   addWorklogs,
+    //   removeWorklogs,
+    //   setState: (state) => setState(state ? state.),
+    // });
+  };
+
+  const handleCreateTask = async (title: string, description: string) => {
+    const newTask = await createTask({
+      title,
+      description,
+      showNotification: true,
+      forSprintTasks: true,
+    });
+    if (!newTask) return null;
+
+    return newTask;
+  };
+  const handleUpdateWorklogs = async (
+    taskId: string,
+    workingTimes: { date: Dayjs; time: string }[]
+  ) => {
+    return await addWorklogs({
       taskId,
-      workingTimes,
-      efforts: worklogs,
-      clearOld: false,
-      addWorklogs,
-      removeWorklogs,
-      setState,
+      worklogs: workingTimes.map((t) => ({
+        date: t.date.format("YYYYMMDD"),
+        mins: ((convertJiraTimeToHours(t.time) as number) || 0) * 60,
+      })),
+      showNotification: true,
     });
   };
 
@@ -149,6 +220,30 @@ const BiWeeklyTaskForm: React.FC<{
     res && setTaskJobs(res);
   };
 
+  const handleSaveAll: FormProps["onFinish"] = async ({
+    title,
+    content,
+    workingTimes,
+  }) => {
+    try {
+      setState("loading")("sending a new request to create task...");
+      const taskRes = await handleCreateTask(title, content);
+      if (!taskRes) {
+        throw new Error("unknown error when create task");
+      }
+
+      if (Array.isArray(workingTimes) && workingTimes.length > 0) {
+        setState("loading")("sending new request(s) to add working times...");
+        await handleUpdateWorklogs(taskRes?.reqId, workingTimes);
+      }
+    } catch (e: any) {
+      console.error("Error at client when handle save data:", e);
+      setState("error")(e.message);
+    } finally {
+      setState("done")("save data finished!");
+    }
+  };
+
   return (
     <>
       <div className="text-gray-400 mb-2">
@@ -162,7 +257,12 @@ const BiWeeklyTaskForm: React.FC<{
           Update JSON data?
         </span>
       </div>
-      <Form initialValues={formInitialValues} layout="vertical" form={form}>
+      <Form
+        initialValues={formInitialValues}
+        layout="vertical"
+        form={form}
+        onFinish={handleSaveAll}
+      >
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
           <div className="col-span-1 lg:col-span-3">
             <div className="grid grid-cols-2 gap-3">
@@ -270,6 +370,7 @@ const BiWeeklyTaskForm: React.FC<{
                     label: "Add worklogs only",
                     onClick: () => handleAddWorklogOnly(),
                     className: "w-auto",
+                    disabled: true,
                   },
                 ],
               }}
@@ -335,6 +436,7 @@ const BiWeeklyElement = () => {
 const ModalBiWeeklyReport: React.FC<Omit<ModalProps, "title" | "children">> = (
   props
 ) => {
+  const sprint = useJiraStore.useSelectedSprint();
   if (!props.open) return null;
 
   return (
@@ -345,19 +447,47 @@ const ModalBiWeeklyReport: React.FC<Omit<ModalProps, "title" | "children">> = (
       style={{ top: 20 }}
       {...props}
     >
-      <div className="text-gray-400 mb-2">
-        Follow{" "}
-        <Link
-          href="https://github.com/nqhd3v/working/blob/develop/docs/bi-weekly-gen-rp.md"
-          target="_blank"
-          className="!text-gray-500 underline"
-        >
-          this document
-        </Link>{" "}
-        to get your meetings & time.
-      </div>
+      {sprint ? (
+        <>
+          <div className="text-gray-400 mb-2">
+            Follow{" "}
+            <Link
+              href="https://github.com/nqhd3v/working/blob/develop/docs/bi-weekly-gen-rp.md"
+              target="_blank"
+              className="!text-gray-500 underline"
+            >
+              this document
+            </Link>{" "}
+            to get your meetings & time. Or click{" "}
+            <Tooltip
+              title={
+                <>
+                  <b className="text-red-400 uppercase font-bold">important:</b>{" "}
+                  You need to <b>assign your permission</b> to get your events!
+                </>
+              }
+              placement="bottom"
+            >
+              <Link
+                href={`${MEETING_EVENTS_RETRIEVE_SCRIPT}?teams=pm&start=${jiraTime(
+                  sprint.startDate
+                ).format("YYYY-MM-DD")}&end=${jiraTime(sprint.endDate).format(
+                  "YYYY-MM-DD"
+                )}`}
+                target="_blank"
+                className="!text-gray-500 underline"
+              >
+                here
+              </Link>
+            </Tooltip>{" "}
+            to get your event in {sprint.name}!
+          </div>
 
-      <BiWeeklyElement />
+          <BiWeeklyElement />
+        </>
+      ) : (
+        <div>no sprint selected</div>
+      )}
     </Modal>
   );
 };

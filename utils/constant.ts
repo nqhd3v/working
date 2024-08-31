@@ -20,3 +20,6 @@ export const COLOR_PALETTE = [
   "#AD9338",
   "#B77B3B",
 ];
+
+export const MEETING_EVENTS_RETRIEVE_SCRIPT =
+  "https://script.google.com/macros/s/AKfycbz2G7dGAxxs9B2Pqb1tnUhoNHO9_GCkuBtKOBgCeOejEb6IS6-NVwjLjxC0jIWulQB-/exec";
