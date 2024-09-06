@@ -29,6 +29,7 @@ import { useBlpStore } from "@/stores/blueprint";
 import FormItemWorkingTime from "../components/form-item-work-time";
 import { useBlueprintTasks } from "@/hooks/use-blp-tasks";
 import { updateWorklogs } from "../handlers";
+import useProcess from "@/hooks/use-process";
 
 const AddWorklogModal: React.FC<
   Omit<ModalProps, "children" | "title" | "footer">
@@ -36,10 +37,7 @@ const AddWorklogModal: React.FC<
   const project = useBlpStore.useSelectedProject();
   const category = useBlpStore.useSelectedCategory();
   const [form] = Form.useForm();
-  const [state, setState] = useState<{
-    state: "loading" | "error" | "done";
-    message: string;
-  } | null>(null);
+  const { content, setState } = useProcess();
   const [actualEfforts, setEfforts] = useState<TBlpTaskEffort[]>([]);
   const [taskJobs, setTaskJobs] = useState<TBlpTaskJob[]>([]);
   const { addWorklogs, removeWorklogs } = useBlueprintTasks();
@@ -71,32 +69,6 @@ const AddWorklogModal: React.FC<
     setTaskJobs([]);
     form.resetFields();
   }, [props.open]);
-
-  const renderState = () => {
-    if (!state) return null;
-    if (state.state === "loading") {
-      return (
-        <div className="flex items-center gap-5">
-          <LoadingOutlined spin />
-          <span>{state.message}</span>
-        </div>
-      );
-    }
-    if (state.state === "error") {
-      return (
-        <div className="flex items-center gap-5">
-          <ExclamationCircleOutlined className="!text-red-400" />
-          <span>{state.message}</span>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center gap-5">
-        <CheckCircleOutlined className="!text-green-700" />
-        <span>{state.message}</span>
-      </div>
-    );
-  };
 
   const handleUpdateEfforts = async (task: TTaskDetail | null) => {
     if (!task) {
@@ -218,10 +190,9 @@ const AddWorklogModal: React.FC<
           <Button type="primary" htmlType="submit">
             Update
           </Button>
-          <div>{renderState()}</div>
         </div>
       </Form>
-      {renderState()}
+      {content}
     </Modal>
   );
 };
