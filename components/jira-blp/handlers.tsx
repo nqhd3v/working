@@ -1,3 +1,4 @@
+import { TSetProcessState } from "@/hooks/use-process";
 import { convertJiraTimeToHours } from "@/utils/mapping-data";
 import { CheckCircleFilled, ExclamationCircleFilled } from "@ant-design/icons";
 import { TBlpTaskEffort } from "@nqhd3v/crazy/types/blueprint";
@@ -33,12 +34,7 @@ export const updateWorklogs = async ({
     taskId: string;
     efforts: TBlpTaskEffort[];
   }) => Promise<null | { success: any[]; fail: any[] }>;
-  setState: Dispatch<
-    SetStateAction<null | {
-      state: "loading" | "error" | "done";
-      message: string;
-    }>
-  >;
+  setState: TSetProcessState;
 }) => {
   const worklogs = workingTimes.map((time) => ({
     date: time.date.format("YYYYMMDD"),
@@ -47,13 +43,10 @@ export const updateWorklogs = async ({
   // remove
 
   if (clearOld && Array.isArray(efforts) && efforts.length > 0) {
-    setState({ state: "loading", message: "deleting old worklogs..." });
+    setState("loading")("deleting old worklogs...");
     const res = await removeWorklogs({ taskId, efforts });
     if (!res) {
-      setState({
-        state: "error",
-        message: "you need to configure for Blueprint task first!",
-      });
+      setState("error")("you need to configure for Blueprint task first!");
       return;
     }
 
@@ -79,13 +72,12 @@ export const updateWorklogs = async ({
     console.info("Remove old worklogs result:", res);
   }
 
-  setState({ state: "loading", message: "creating new worklogs..." });
+  setState("loading")("creating new worklogs...");
   const addRes = await addWorklogs({ taskId, worklogs });
   if (!addRes) {
-    setState({
-      state: "error",
-      message: "you need to configure to create Blueprint's task first!",
-    });
+    setState("error")(
+      "you need to configure to create Blueprint's task first!"
+    );
     return;
   }
 
@@ -109,5 +101,5 @@ export const updateWorklogs = async ({
     ),
   });
   console.info("Create new worklogs result:", addRes);
-  setState({ state: "done", message: "done!" });
+  setState("done")("done!");
 };

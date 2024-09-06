@@ -78,10 +78,6 @@ const BiWeeklyTaskForm: React.FC<{
   onUpdateEvents: () => void;
 }> = ({ events, onUpdateEvents }) => {
   const [taskJobs, setTaskJobs] = useState<TBlpTaskJob[]>([]);
-  // const [state, setState] = useState<null | {
-  //   state: "loading" | "error" | "done";
-  //   message: string;
-  // }>(null);
   const { content, setState } = useProcess();
   const { createTask, addWorklogs, removeWorklogs } = useBlueprintTasks();
   const { getJobs } = useBlueprintTask();
@@ -171,15 +167,15 @@ const BiWeeklyTaskForm: React.FC<{
       return;
     }
 
-    // await updateWorklogs({
-    //   taskId,
-    //   workingTimes,
-    //   efforts: worklogs,
-    //   clearOld: false,
-    //   addWorklogs,
-    //   removeWorklogs,
-    //   setState: (state) => setState(state ? state.),
-    // });
+    await updateWorklogs({
+      taskId,
+      workingTimes,
+      efforts: worklogs,
+      clearOld: false,
+      addWorklogs,
+      removeWorklogs,
+      setState,
+    });
   };
 
   const handleCreateTask = async (title: string, description: string) => {
@@ -355,6 +351,7 @@ const BiWeeklyTaskForm: React.FC<{
               }}
             </Form.List>
           </Form.Item>
+          {content && <div className="p-5 bg-gray-100 rounded">{content}</div>}
         </div>
 
         <div className="w-full flex items-center gap-2 justify-end">
@@ -370,7 +367,6 @@ const BiWeeklyTaskForm: React.FC<{
                     label: "Add worklogs only",
                     onClick: () => handleAddWorklogOnly(),
                     className: "w-auto",
-                    disabled: true,
                   },
                 ],
               }}
